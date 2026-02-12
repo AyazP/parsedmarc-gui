@@ -1,4 +1,5 @@
 """Mailbox configuration API endpoints."""
+import logging
 from typing import List
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
@@ -12,6 +13,10 @@ from app.schemas.mailbox_config import (
     MailboxConfigResponse
 )
 from app.services.encryption_service import EncryptionService
+from app.services.mailbox_service import mailbox_service
+from app.api.parsing import ConnectionTestResponse
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/configs/mailboxes", tags=["Mailbox Configurations"])
 encryption_service = EncryptionService()
@@ -221,3 +226,24 @@ def delete_mailbox_config(
     db.commit()
 
     return None
+
+
+@router.post("/{config_id}/test", response_model=ConnectionTestResponse)
+def test_mailbox_connection(
+    config_id: int,
+    db: Session = Depends(get_db),
+):
+    """
+    Test connectivity to a mailbox configuration.
+
+    Attempts to connect and list messages in the reports folder.
+    """
+    config = db.query(MailboxConfig).filter(MailboxConfig.id == config_id).first()
+    if not config:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Mailbox configuration with ID {config_id} not found",
+        )
+
+    result = mailbox_service.test_connection(config)
+    return result

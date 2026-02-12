@@ -145,3 +145,4 @@ parsedmarc/resources/maps/unknown_base_reverse_dns.csv
 parsedmarc/resources/maps/sus_domains.csv
 parsedmarc/resources/maps/unknown_domains.txt
 *.bak
+nul
