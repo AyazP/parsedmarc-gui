@@ -1,5 +1,6 @@
 """Monitoring service for managing background mailbox monitoring jobs."""
 import logging
+from datetime import datetime
 from typing import Optional
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.interval import IntervalTrigger
@@ -58,18 +59,15 @@ class MonitoringService:
             raise RuntimeError("MonitoringService is not running")
 
         job_id = f"monitor_mailbox_{mailbox_config_id}"
-
-        # TODO: Implement actual monitoring logic
         logger.info(f"Adding monitoring job: {job_id} (interval: {watch_interval}s)")
 
-        # Placeholder: will be implemented in later phase
-        # self.scheduler.add_job(
-        #     func=self._check_mailbox,
-        #     args=[mailbox_config_id],
-        #     trigger=IntervalTrigger(seconds=watch_interval),
-        #     id=job_id,
-        #     replace_existing=True
-        # )
+        self.scheduler.add_job(
+            func=self._check_mailbox,
+            args=[mailbox_config_id],
+            trigger=IntervalTrigger(seconds=watch_interval),
+            id=job_id,
+            replace_existing=True,
+        )
 
     async def remove_monitoring_job(self, mailbox_config_id: int):
         """
@@ -84,9 +82,10 @@ class MonitoringService:
         job_id = f"monitor_mailbox_{mailbox_config_id}"
         logger.info(f"Removing monitoring job: {job_id}")
 
-        # TODO: Implement job removal
-        # if self.scheduler.get_job(job_id):
-        #     self.scheduler.remove_job(job_id)
+        if self.scheduler.get_job(job_id):
+            self.scheduler.remove_job(job_id)
+        else:
+            logger.warning(f"Monitoring job {job_id} not found")
 
     async def _check_mailbox(self, mailbox_config_id: int):
         """
@@ -95,12 +94,66 @@ class MonitoringService:
         Args:
             mailbox_config_id: ID of the mailbox configuration
         """
-        # TODO: Implement in Phase 3
-        # 1. Load mailbox config from database
-        # 2. Decrypt credentials
-        # 3. Create MailboxConnection
-        # 4. Fetch reports using parsedmarc
-        # 5. Parse reports
-        # 6. Send to configured outputs
-        # 7. Update monitoring job status
-        logger.debug(f"Checking mailbox {mailbox_config_id} (placeholder)")
+        from app.db.session import SessionLocal
+        from app.models.mailbox_config import MailboxConfig
+        from app.models.monitoring_job import MonitoringJob
+        from app.services.parsing_service import parsing_service
+
+        db = SessionLocal()
+        mon_job = None
+        try:
+            config = (
+                db.query(MailboxConfig)
+                .filter(MailboxConfig.id == mailbox_config_id)
+                .first()
+            )
+            if not config or not config.enabled:
+                logger.warning(
+                    f"Mailbox config {mailbox_config_id} not found or disabled, skipping"
+                )
+                return
+
+            # Update monitoring job status
+            mon_job = (
+                db.query(MonitoringJob)
+                .filter(MonitoringJob.mailbox_config_id == mailbox_config_id)
+                .first()
+            )
+            if mon_job:
+                mon_job.last_run_at = datetime.utcnow()
+                mon_job.status = "running"
+                db.commit()
+
+            # Run the parsing
+            logger.info(f"Background check: parsing from mailbox '{config.name}'")
+            parse_job = parsing_service.parse_from_mailbox(db=db, config=config)
+
+            # Update monitoring job with results
+            if mon_job:
+                if parse_job.status == "completed":
+                    mon_job.status = "running"  # Still active for next cycle
+                    mon_job.last_success_at = datetime.utcnow()
+                    mon_job.last_error = None
+                    mon_job.reports_processed += (
+                        parse_job.aggregate_reports_count
+                        + parse_job.forensic_reports_count
+                        + parse_job.smtp_tls_reports_count
+                    )
+                else:
+                    mon_job.status = "error"
+                    mon_job.last_error = parse_job.error_message
+                db.commit()
+
+        except Exception as e:
+            logger.error(
+                f"Error checking mailbox {mailbox_config_id}: {e}", exc_info=True
+            )
+            if mon_job:
+                mon_job.status = "error"
+                mon_job.last_error = str(e)
+                try:
+                    db.commit()
+                except Exception:
+                    db.rollback()
+        finally:
+            db.close()
