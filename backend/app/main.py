@@ -139,6 +139,15 @@ if static_dir.exists():
         """Serve the frontend application."""
         return FileResponse(str(static_dir / "index.html"))
 
+    @app.get("/{full_path:path}")
+    async def serve_frontend_spa(full_path: str):
+        """SPA catch-all: serve index.html for client-side routes."""
+        # Serve actual files from assets if they exist
+        file_path = static_dir / full_path
+        if file_path.exists() and file_path.is_file():
+            return FileResponse(str(file_path))
+        return FileResponse(str(static_dir / "index.html"))
+
 # Health check endpoint
 @app.get("/api/health")
 async def health_check():
