@@ -1,6 +1,34 @@
 services:
+  # ParseDMARC Web GUI
+  gui:
+    build:
+      context: .
+      dockerfile: Dockerfile.gui
+    ports:
+      - "8000:8000"
+    environment:
+      - PARSEDMARC_ENCRYPTION_KEY=${PARSEDMARC_ENCRYPTION_KEY:?Set PARSEDMARC_ENCRYPTION_KEY in .env}
+      - PARSEDMARC_GUI_USERNAME=${PARSEDMARC_GUI_USERNAME:-admin}
+      - PARSEDMARC_GUI_PASSWORD=${PARSEDMARC_GUI_PASSWORD:-changeme}
+      - PARSEDMARC_DB_PATH=/app/data/parsedmarc.db
+      - PARSEDMARC_DATA_DIR=/app/data
+      - PARSEDMARC_LOG_LEVEL=${PARSEDMARC_LOG_LEVEL:-INFO}
+      - PARSEDMARC_CORS_ORIGINS=http://localhost:8000
+    volumes:
+      - gui-data:/app/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import httpx; httpx.get('http://localhost:8000/api/health').raise_for_status()"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  # Optional: Elasticsearch for report storage
+  # Start with: docker compose --profile elasticsearch up
   elasticsearch:
     image: docker.elastic.co/elasticsearch/elasticsearch:8.19.7
+    profiles: ["elasticsearch"]
     environment:
       - network.host=127.0.0.1
       - http.host=0.0.0.0
@@ -17,6 +45,8 @@ services:
       memlock:
         soft: -1
         hard: -1
+    volumes:
+      - es-data:/usr/share/elasticsearch/data
     healthcheck:
       test:
         [
@@ -27,8 +57,11 @@ services:
       timeout: 10s
       retries: 24
 
+  # Optional: OpenSearch for report storage
+  # Start with: docker compose --profile opensearch up
   opensearch:
     image: opensearchproject/opensearch:2
+    profiles: ["opensearch"]
     environment:
       - network.host=127.0.0.1
       - http.host=0.0.0.0
@@ -44,12 +77,19 @@ services:
       memlock:
         soft: -1
         hard: -1
+    volumes:
+      - os-data:/usr/share/opensearch/data
     healthcheck:
       test:
         [
           "CMD-SHELL",
-          "curl -s -XGET http://localhost:9201/_cluster/health?pretty | grep status | grep -q '\\(green\\|yellow\\)'"
+          "curl -s -XGET http://localhost:9200/_cluster/health?pretty | grep status | grep -q '\\(green\\|yellow\\)'"
         ]
       interval: 10s
       timeout: 10s
       retries: 24
+
+volumes:
+  gui-data:
+  es-data:
+  os-data:

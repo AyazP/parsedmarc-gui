@@ -23,9 +23,6 @@ httpx==0.28.1
 # parsedmarc and dependencies (already installed in this project)
 # parsedmarc will be available from the parent directory
 
-# SSE (Server-Sent Events)
-sse-starlette==2.1.3
-
 # Validation
 pydantic==2.9.2
 pydantic-settings==2.5.2
