@@ -10,6 +10,7 @@ import AppButton from '@/components/ui/AppButton.vue'
 import AppBadge from '@/components/ui/AppBadge.vue'
 import AppSpinner from '@/components/ui/AppSpinner.vue'
 import AppAlert from '@/components/ui/AppAlert.vue'
+import UpdateSettings from '@/components/updates/UpdateSettings.vue'
 
 const toast = useToast()
 
@@ -89,6 +90,9 @@ function formatDate(dateStr?: string): string {
         </div>
         <div v-else class="text-sm text-gray-500">Unable to load system information.</div>
       </AppCard>
+
+      <!-- Update Checker -->
+      <UpdateSettings />
 
       <!-- SSL Certificate -->
       <AppCard>

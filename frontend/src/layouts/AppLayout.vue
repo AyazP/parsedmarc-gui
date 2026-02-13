@@ -1,16 +1,20 @@
 <script setup lang="ts">
 import { onMounted } from 'vue'
 import { useAppStore } from '@/stores/app'
+import { useUpdateStore } from '@/stores/updates'
 import TheSidebar from '@/components/layout/TheSidebar.vue'
 import TheTopbar from '@/components/layout/TheTopbar.vue'
 import ToastContainer from '@/components/ui/ToastContainer.vue'
 
 const appStore = useAppStore()
+const updateStore = useUpdateStore()
 
 onMounted(() => {
   if (!appStore.initialized) {
     appStore.initialize()
   }
+  // Fetch update status (non-blocking, fire-and-forget)
+  updateStore.fetchStatus()
 })
 </script>
 

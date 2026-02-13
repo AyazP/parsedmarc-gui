@@ -47,6 +47,11 @@ class Settings(BaseSettings):
     # Data directory for tokens, uploads, etc.
     data_dir: Path = Field(default=Path("./data"), validation_alias="PARSEDMARC_DATA_DIR")
 
+    # Update checker
+    update_check_enabled: bool = Field(default=True, validation_alias="PARSEDMARC_UPDATE_CHECK_ENABLED")
+    update_check_interval_hours: int = Field(default=24, ge=1, le=168, validation_alias="PARSEDMARC_UPDATE_CHECK_INTERVAL")
+    docker_mode: bool = Field(default=False, validation_alias="PARSEDMARC_DOCKER")
+
     @property
     def cors_origins(self) -> List[str]:
         """Get CORS origins as a list."""

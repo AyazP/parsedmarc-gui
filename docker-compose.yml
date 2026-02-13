@@ -14,6 +14,7 @@ services:
       - PARSEDMARC_DATA_DIR=/app/data
       - PARSEDMARC_LOG_LEVEL=${PARSEDMARC_LOG_LEVEL:-INFO}
       - PARSEDMARC_CORS_ORIGINS=http://localhost:8000
+      - PARSEDMARC_DOCKER=true
     volumes:
       - gui-data:/app/data
     restart: unless-stopped

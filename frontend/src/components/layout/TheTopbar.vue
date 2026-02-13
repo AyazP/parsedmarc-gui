@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { useAppStore } from '@/stores/app'
+import UpdateBadge from '@/components/updates/UpdateBadge.vue'
 
 const appStore = useAppStore()
 </script>
@@ -10,6 +11,8 @@ const appStore = useAppStore()
       <slot name="title" />
     </div>
     <div class="flex items-center gap-4">
+      <!-- Update notification -->
+      <UpdateBadge />
       <!-- Health indicator -->
       <div class="flex items-center gap-2 text-sm text-gray-500">
         <span
