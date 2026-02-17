@@ -10,6 +10,7 @@ from pathlib import Path
 from app.config import settings
 from app.db.session import engine, Base
 from app.services.monitoring_service import MonitoringService
+from app.services.update_service import UpdateService
 
 # Configure logging
 logging.basicConfig(
@@ -18,14 +19,17 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# Global monitoring service instance
+APP_VERSION = "1.0.0"
+
+# Global service instances
 monitoring_service: MonitoringService | None = None
+update_service: UpdateService | None = None
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Application lifespan manager."""
-    global monitoring_service
+    global monitoring_service, update_service
 
     logger.info("Starting ParseDMARC Web GUI...")
 
@@ -48,6 +52,11 @@ async def lifespan(app: FastAPI):
     monitoring_service = MonitoringService()
     await monitoring_service.start()
 
+    # Initialize update service
+    logger.info("Initializing update service...")
+    update_service = UpdateService(current_version=APP_VERSION)
+    await update_service.start()
+
     logger.info("Application started successfully!")
 
     yield
@@ -56,6 +65,8 @@ async def lifespan(app: FastAPI):
     logger.info("Shutting down...")
     if monitoring_service:
         await monitoring_service.stop()
+    if update_service:
+        await update_service.stop()
     logger.info("Shutdown complete.")
 
 
@@ -63,7 +74,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="ParseDMARC Web GUI",
     description="Web interface for ParseDMARC - DMARC report parser and analyzer",
-    version="1.0.0",
+    version=APP_VERSION,
     lifespan=lifespan
 )
 
@@ -129,6 +140,13 @@ try:
 except ImportError as e:
     logger.warning(f"dashboard router not available: {e}")
 
+try:
+    from app.api import updates
+    app.include_router(updates.router)
+    logger.info("Registered updates router")
+except ImportError as e:
+    logger.warning(f"updates router not available: {e}")
+
 # Serve static files (frontend) if available
 static_dir = Path(__file__).parent.parent.parent / "frontend" / "dist"
 if static_dir.exists():
@@ -139,13 +157,22 @@ if static_dir.exists():
         """Serve the frontend application."""
         return FileResponse(str(static_dir / "index.html"))
 
+    @app.get("/{full_path:path}")
+    async def serve_frontend_spa(full_path: str):
+        """SPA catch-all: serve index.html for client-side routes."""
+        # Serve actual files from assets if they exist
+        file_path = static_dir / full_path
+        if file_path.exists() and file_path.is_file():
+            return FileResponse(str(file_path))
+        return FileResponse(str(static_dir / "index.html"))
+
 # Health check endpoint
 @app.get("/api/health")
 async def health_check():
     """Health check endpoint."""
     return {
         "status": "healthy",
-        "version": "1.0.0",
+        "version": APP_VERSION,
         "monitoring_active": monitoring_service is not None and monitoring_service.is_running()
     }
 
@@ -154,7 +181,7 @@ async def health_check():
 async def system_info():
     """Get system information."""
     return {
-        "version": "1.0.0",
+        "version": APP_VERSION,
         "database": str(settings.db_path),
         "data_directory": str(settings.data_dir),
     }

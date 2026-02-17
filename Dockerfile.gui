@@ -1,0 +1,56 @@
+# Multi-stage build for ParseDMARC Web GUI
+# Stage 1: Build frontend
+FROM node:20-slim AS frontend-build
+
+WORKDIR /app/frontend
+COPY frontend/package.json frontend/package-lock.json* ./
+RUN npm ci
+COPY frontend/ ./
+RUN npm run build
+
+# Stage 2: Python application
+FROM python:3.12-slim
+
+ARG USERNAME=parsedmarc
+ARG USER_UID=1000
+ARG USER_GID=$USER_UID
+
+# Create non-root user
+RUN groupadd --gid ${USER_GID} ${USERNAME} && \
+    useradd --uid ${USER_UID} --gid ${USER_GID} -m ${USERNAME}
+
+WORKDIR /app
+
+# Install system dependencies
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends gcc libffi-dev && \
+    rm -rf /var/lib/apt/lists/*
+
+# Install Python dependencies
+COPY backend/requirements.txt ./
+RUN pip install --no-cache-dir -r requirements.txt && \
+    pip install --no-cache-dir parsedmarc
+
+# Copy backend code
+COPY backend/ ./backend/
+
+# Copy built frontend from stage 1
+COPY --from=frontend-build /app/frontend/dist ./frontend/dist
+
+# Create data directory
+RUN mkdir -p /app/data && chown -R ${USERNAME}:${USERNAME} /app
+
+USER ${USERNAME}
+
+EXPOSE 8000
+
+# Default environment variables
+ENV PARSEDMARC_HOST=0.0.0.0 \
+    PARSEDMARC_PORT=8000 \
+    PARSEDMARC_DB_PATH=/app/data/parsedmarc.db \
+    PARSEDMARC_DATA_DIR=/app/data \
+    PARSEDMARC_LOG_LEVEL=INFO
+
+WORKDIR /app/backend
+
+CMD ["python", "-m", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
