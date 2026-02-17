@@ -66,7 +66,7 @@ function formatInterval(seconds: number): string {
 <template>
   <div class="space-y-6">
     <div class="flex items-center justify-between">
-      <h1 class="text-2xl font-bold text-gray-900">Mailbox Configs</h1>
+      <h1 class="text-2xl font-bold text-gray-900 dark:text-gray-100">Mailbox Configs</h1>
       <AppButton @click="router.push('/mailboxes/new')">Add Mailbox</AppButton>
     </div>
 
@@ -93,7 +93,7 @@ function formatInterval(seconds: number): string {
 
     <!-- Confirm Dialog -->
     <AppModal :open="isOpen" :title="title" @close="handleCancel">
-      <p class="text-sm text-gray-600">{{ message }}</p>
+      <p class="text-sm text-gray-600 dark:text-gray-400">{{ message }}</p>
       <template #footer>
         <div class="flex justify-end gap-3">
           <AppButton variant="secondary" @click="handleCancel">Cancel</AppButton>
@@ -105,11 +105,11 @@ function formatInterval(seconds: number): string {
     <!-- Test Connection Modal -->
     <AppModal :open="testModalOpen" title="Connection Test" @close="testModalOpen = false">
       <div v-if="testingId !== null" class="flex items-center gap-3 py-4">
-        <svg class="animate-spin h-5 w-5 text-primary-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+        <svg class="animate-spin h-5 w-5 text-primary-600 dark:text-primary-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
           <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
           <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
         </svg>
-        <span class="text-sm text-gray-600">Testing connection...</span>
+        <span class="text-sm text-gray-600 dark:text-gray-400">Testing connection...</span>
       </div>
       <div v-else-if="testResult" class="space-y-3">
         <div class="flex items-center gap-2">
@@ -117,11 +117,11 @@ function formatInterval(seconds: number): string {
             class="w-3 h-3 rounded-full"
             :class="testResult.success ? 'bg-green-500' : 'bg-red-500'"
           />
-          <span class="text-sm font-medium" :class="testResult.success ? 'text-green-700' : 'text-red-700'">
+          <span class="text-sm font-medium" :class="testResult.success ? 'text-green-700 dark:text-green-400' : 'text-red-700 dark:text-red-400'">
             {{ testResult.success ? 'Success' : 'Failed' }}
           </span>
         </div>
-        <p class="text-sm text-gray-600">{{ testResult.message }}</p>
+        <p class="text-sm text-gray-600 dark:text-gray-400">{{ testResult.message }}</p>
       </div>
       <template #footer>
         <div class="flex justify-end">

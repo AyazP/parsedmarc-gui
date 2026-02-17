@@ -15,11 +15,12 @@ services:
       - PARSEDMARC_LOG_LEVEL=${PARSEDMARC_LOG_LEVEL:-INFO}
       - PARSEDMARC_CORS_ORIGINS=http://localhost:8000
       - PARSEDMARC_DOCKER=true
+      - PARSEDMARC_SSL_ENABLED=${PARSEDMARC_SSL_ENABLED:-false}
     volumes:
       - gui-data:/app/data
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "python", "-c", "import httpx; httpx.get('http://localhost:8000/api/health').raise_for_status()"]
+      test: ["CMD", "python", "-c", "import httpx; r = httpx.get('https://localhost:8000/api/health', verify=False) if __import__('os').environ.get('PARSEDMARC_SSL_ENABLED','false').lower() == 'true' else httpx.get('http://localhost:8000/api/health'); r.raise_for_status()"]
       interval: 30s
       timeout: 10s
       retries: 3

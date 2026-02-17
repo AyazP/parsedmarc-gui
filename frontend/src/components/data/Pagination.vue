@@ -22,12 +22,12 @@ const pages = computed(() => {
 
 <template>
   <div class="flex items-center justify-between px-4 py-3">
-    <p class="text-sm text-gray-700">
+    <p class="text-sm text-gray-700 dark:text-gray-300">
       {{ total }} result{{ total !== 1 ? 's' : '' }}
     </p>
     <div v-if="totalPages > 1" class="flex items-center gap-1">
       <button
-        class="px-3 py-1.5 text-sm rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+        class="px-3 py-1.5 text-sm rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
         :disabled="currentPage <= 1"
         @click="emit('page-change', currentPage - 1)"
       >
@@ -37,13 +37,13 @@ const pages = computed(() => {
         v-for="page in pages"
         :key="page"
         class="px-3 py-1.5 text-sm rounded-lg"
-        :class="page === currentPage ? 'bg-primary-600 text-white' : 'border border-gray-300 text-gray-700 hover:bg-gray-50'"
+        :class="page === currentPage ? 'bg-primary-600 text-white' : 'border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'"
         @click="emit('page-change', page)"
       >
         {{ page }}
       </button>
       <button
-        class="px-3 py-1.5 text-sm rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+        class="px-3 py-1.5 text-sm rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
         :disabled="currentPage >= totalPages"
         @click="emit('page-change', currentPage + 1)"
       >

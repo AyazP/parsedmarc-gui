@@ -15,10 +15,10 @@ defineEmits<{
   <div
     class="rounded-lg p-4"
     :class="{
-      'bg-blue-50 text-blue-800 border border-blue-200': type === 'info' || !type,
-      'bg-green-50 text-green-800 border border-green-200': type === 'success',
-      'bg-yellow-50 text-yellow-800 border border-yellow-200': type === 'warning',
-      'bg-red-50 text-red-800 border border-red-200': type === 'error',
+      'bg-blue-50 dark:bg-blue-900/20 text-blue-800 dark:text-blue-400 border border-blue-200 dark:border-blue-800': type === 'info' || !type,
+      'bg-green-50 dark:bg-green-900/20 text-green-800 dark:text-green-400 border border-green-200 dark:border-green-800': type === 'success',
+      'bg-yellow-50 dark:bg-yellow-900/20 text-yellow-800 dark:text-yellow-400 border border-yellow-200 dark:border-yellow-800': type === 'warning',
+      'bg-red-50 dark:bg-red-900/20 text-red-800 dark:text-red-400 border border-red-200 dark:border-red-800': type === 'error',
     }"
   >
     <div class="flex">

@@ -38,8 +38,8 @@ watch([sslType, commonName, domain, email, staging, certPath, keyPath], () => {
 <template>
   <div class="space-y-6">
     <div>
-      <h2 class="text-xl font-semibold text-gray-900">SSL/TLS Configuration</h2>
-      <p class="mt-2 text-sm text-gray-600">Choose how to secure your connection with HTTPS.</p>
+      <h2 class="text-xl font-semibold text-gray-900 dark:text-gray-100">SSL/TLS Configuration</h2>
+      <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">Choose how to secure your connection with HTTPS.</p>
     </div>
 
     <div class="space-y-3">
@@ -47,13 +47,13 @@ watch([sslType, commonName, domain, email, staging, certPath, keyPath], () => {
         v-for="opt in sslOptions"
         :key="opt.value"
         class="relative flex items-start p-4 border rounded-lg cursor-pointer transition-colors"
-        :class="sslType === opt.value ? 'border-primary-500 bg-primary-50' : 'border-gray-200 hover:border-gray-300'"
+        :class="sslType === opt.value ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/30' : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'"
         @click="sslType = opt.value"
       >
         <input type="radio" :checked="sslType === opt.value" class="mt-0.5 h-4 w-4 text-primary-600" />
         <div class="ml-3">
-          <p class="text-sm font-medium text-gray-900">{{ opt.label }}</p>
-          <p class="text-sm text-gray-500">{{ opt.desc }}</p>
+          <p class="text-sm font-medium text-gray-900 dark:text-gray-100">{{ opt.label }}</p>
+          <p class="text-sm text-gray-500 dark:text-gray-400">{{ opt.desc }}</p>
         </div>
       </div>
     </div>

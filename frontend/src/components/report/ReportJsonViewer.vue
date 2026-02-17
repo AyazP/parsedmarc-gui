@@ -31,11 +31,11 @@ function formatValue(value: unknown): string {
 }
 
 function valueClass(value: unknown): string {
-  if (value === null || value === undefined) return 'text-gray-400'
-  if (typeof value === 'string') return 'text-green-700'
-  if (typeof value === 'number') return 'text-blue-700'
-  if (typeof value === 'boolean') return 'text-purple-700'
-  return 'text-gray-900'
+  if (value === null || value === undefined) return 'text-gray-400 dark:text-gray-500'
+  if (typeof value === 'string') return 'text-green-700 dark:text-green-400'
+  if (typeof value === 'number') return 'text-blue-700 dark:text-blue-400'
+  if (typeof value === 'boolean') return 'text-purple-700 dark:text-purple-400'
+  return 'text-gray-900 dark:text-gray-100'
 }
 </script>
 
@@ -43,16 +43,16 @@ function valueClass(value: unknown): string {
   <div class="font-mono text-sm">
     <div
       v-if="isExpandable"
-      class="cursor-pointer select-none hover:bg-gray-50 rounded px-1 -mx-1"
+      class="cursor-pointer select-none hover:bg-gray-50 dark:hover:bg-gray-700 rounded px-1 -mx-1"
       @click="expanded = !expanded"
     >
-      <span class="text-gray-400 inline-block w-4">{{ expanded ? '▼' : '▶' }}</span>
-      <span v-if="label" class="text-gray-700 font-medium">{{ label }}</span>
-      <span class="text-gray-400 ml-1">
+      <span class="text-gray-400 dark:text-gray-500 inline-block w-4">{{ expanded ? '▼' : '▶' }}</span>
+      <span v-if="label" class="text-gray-700 dark:text-gray-300 font-medium">{{ label }}</span>
+      <span class="text-gray-400 dark:text-gray-500 ml-1">
         {{ isArray ? '[' + entries.length + ']' : '{' + entries.length + '}' }}
       </span>
     </div>
-    <div v-if="isExpandable && expanded" class="ml-4 border-l border-gray-200 pl-3">
+    <div v-if="isExpandable && expanded" class="ml-4 border-l border-gray-200 dark:border-gray-700 pl-3">
       <div v-for="entry in entries" :key="entry.key">
         <ReportJsonViewer
           v-if="entry.value !== null && typeof entry.value === 'object'"
@@ -61,14 +61,14 @@ function valueClass(value: unknown): string {
           :depth="(depth ?? 0) + 1"
         />
         <div v-else class="py-0.5">
-          <span class="text-gray-700 font-medium">{{ entry.key }}</span>
-          <span class="text-gray-400">: </span>
+          <span class="text-gray-700 dark:text-gray-300 font-medium">{{ entry.key }}</span>
+          <span class="text-gray-400 dark:text-gray-500">: </span>
           <span :class="valueClass(entry.value)">{{ formatValue(entry.value) }}</span>
         </div>
       </div>
     </div>
     <div v-if="!isExpandable" class="py-0.5">
-      <span v-if="label" class="text-gray-700 font-medium">{{ label }}: </span>
+      <span v-if="label" class="text-gray-700 dark:text-gray-300 font-medium">{{ label }}: </span>
       <span :class="valueClass(data)">{{ formatValue(data) }}</span>
     </div>
   </div>

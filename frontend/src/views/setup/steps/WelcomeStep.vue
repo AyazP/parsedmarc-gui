@@ -46,8 +46,8 @@ async function copyToClipboard() {
 <template>
   <div class="space-y-6">
     <div>
-      <h2 class="text-xl font-semibold text-gray-900">Welcome to ParseDMARC</h2>
-      <p class="mt-2 text-sm text-gray-600">
+      <h2 class="text-xl font-semibold text-gray-900 dark:text-gray-100">Welcome to ParseDMARC</h2>
+      <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">
         Let's set up your DMARC report parser. First, we need to configure an encryption key
         that will be used to securely store your credentials.
       </p>
@@ -61,20 +61,20 @@ async function copyToClipboard() {
       </AppButton>
 
       <div v-if="generatedKey" class="space-y-2">
-        <label class="block text-sm font-medium text-gray-700">Generated Key</label>
+        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Generated Key</label>
         <div class="flex gap-2">
-          <code class="flex-1 block bg-gray-100 rounded-lg px-3 py-2 text-sm font-mono break-all select-all">{{ generatedKey }}</code>
+          <code class="flex-1 block bg-gray-100 dark:bg-gray-800 rounded-lg px-3 py-2 text-sm font-mono break-all select-all">{{ generatedKey }}</code>
           <AppButton variant="secondary" size="sm" @click="copyToClipboard">Copy</AppButton>
         </div>
       </div>
 
       <div class="relative">
-        <div class="absolute inset-0 flex items-center"><div class="w-full border-t border-gray-300" /></div>
-        <div class="relative flex justify-center text-sm"><span class="bg-white px-2 text-gray-500">or</span></div>
+        <div class="absolute inset-0 flex items-center"><div class="w-full border-t border-gray-300 dark:border-gray-600" /></div>
+        <div class="relative flex justify-center text-sm"><span class="bg-white dark:bg-gray-800 px-2 text-gray-500 dark:text-gray-400">or</span></div>
       </div>
 
       <div>
-        <button class="text-sm text-primary-600 hover:text-primary-700" @click="useCustom = !useCustom">
+        <button class="text-sm text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300" @click="useCustom = !useCustom">
           {{ useCustom ? 'Hide' : 'Paste your own key' }}
         </button>
         <div v-if="useCustom" class="mt-2 space-y-2">

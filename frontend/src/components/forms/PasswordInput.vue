@@ -18,20 +18,20 @@ const visible = ref(false)
 
 <template>
   <div>
-    <label v-if="label" class="block text-sm font-medium text-gray-700 mb-1">{{ label }}</label>
+    <label v-if="label" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ label }}</label>
     <div class="relative">
       <input
         :type="visible ? 'text' : 'password'"
         :value="modelValue"
         :placeholder="placeholder"
         :disabled="disabled"
-        class="block w-full rounded-lg border px-3 py-2 pr-10 text-sm shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 disabled:bg-gray-50"
-        :class="error ? 'border-red-300' : 'border-gray-300'"
+        class="block w-full rounded-lg border px-3 py-2 pr-10 text-sm shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 disabled:bg-gray-50 dark:disabled:bg-gray-700 bg-white dark:bg-gray-700 dark:text-gray-100 dark:placeholder-gray-400"
+        :class="error ? 'border-red-300 dark:border-red-500' : 'border-gray-300 dark:border-gray-600'"
         @input="$emit('update:modelValue', ($event.target as HTMLInputElement).value)"
       />
       <button
         type="button"
-        class="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-gray-600"
+        class="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
         @click="visible = !visible"
       >
         <svg v-if="!visible" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -43,6 +43,6 @@ const visible = ref(false)
         </svg>
       </button>
     </div>
-    <p v-if="error" class="mt-1 text-sm text-red-600">{{ error }}</p>
+    <p v-if="error" class="mt-1 text-sm text-red-600 dark:text-red-400">{{ error }}</p>
   </div>
 </template>

@@ -73,7 +73,7 @@ function formatDate(dateStr: unknown): string {
 
 <template>
   <div class="space-y-6">
-    <h1 class="text-2xl font-bold text-gray-900">Parse Jobs</h1>
+    <h1 class="text-2xl font-bold text-gray-900 dark:text-gray-100">Parse Jobs</h1>
 
     <AppCard>
       <FilterBar>
@@ -110,8 +110,8 @@ function formatDate(dateStr: unknown): string {
           {{ formatReports(row) }}
         </template>
         <template #cell-error_message="{ value }">
-          <span v-if="value" class="text-xs text-red-600 max-w-[200px] truncate block">{{ value }}</span>
-          <span v-else class="text-gray-400">-</span>
+          <span v-if="value" class="text-xs text-red-600 dark:text-red-400 max-w-[200px] truncate block">{{ value }}</span>
+          <span v-else class="text-gray-400 dark:text-gray-500">-</span>
         </template>
         <template #cell-created_at="{ value }">
           {{ formatDate(value) }}

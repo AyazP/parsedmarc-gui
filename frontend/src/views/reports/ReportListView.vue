@@ -74,11 +74,11 @@ function formatDate(dateStr: string | null): string {
 
 <template>
   <div class="space-y-6">
-    <h1 class="text-2xl font-bold text-gray-900">Reports</h1>
+    <h1 class="text-2xl font-bold text-gray-900 dark:text-gray-100">Reports</h1>
 
     <AppCard>
       <template #header>
-        <h2 class="text-base font-semibold text-gray-900">Filters</h2>
+        <h2 class="text-base font-semibold text-gray-900 dark:text-gray-100">Filters</h2>
       </template>
       <FilterBar>
         <AppSelect
@@ -117,7 +117,7 @@ function formatDate(dateStr: string | null): string {
           {{ value ?? '-' }}
         </template>
         <template #cell-report_id="{ value }">
-          <span class="text-xs font-mono text-gray-500 max-w-[200px] truncate block">{{ value ?? '-' }}</span>
+          <span class="text-xs font-mono text-gray-500 dark:text-gray-400 max-w-[200px] truncate block">{{ value ?? '-' }}</span>
         </template>
         <template #cell-date_begin="{ row }">
           {{ formatDate(row.date_begin as string | null) }} — {{ formatDate(row.date_end as string | null) }}

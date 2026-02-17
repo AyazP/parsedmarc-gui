@@ -215,7 +215,7 @@ async function handleSubmit() {
       <AppButton variant="ghost" @click="router.push('/outputs')">
         &larr; Back
       </AppButton>
-      <h1 class="text-2xl font-bold text-gray-900">
+      <h1 class="text-2xl font-bold text-gray-900 dark:text-gray-100">
         {{ isEdit ? 'Edit Output' : 'New Output' }}
       </h1>
     </div>
@@ -229,7 +229,7 @@ async function handleSubmit() {
 
       <AppCard>
         <template #header>
-          <h2 class="text-base font-semibold text-gray-900">General</h2>
+          <h2 class="text-base font-semibold text-gray-900 dark:text-gray-100">General</h2>
         </template>
         <div class="space-y-4">
           <AppInput

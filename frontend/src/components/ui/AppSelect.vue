@@ -15,12 +15,12 @@ defineEmits<{
 
 <template>
   <div>
-    <label v-if="label" class="block text-sm font-medium text-gray-700 mb-1">{{ label }}</label>
+    <label v-if="label" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ label }}</label>
     <select
       :value="modelValue"
       :disabled="disabled"
-      class="block w-full rounded-lg border px-3 py-2 text-sm shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 disabled:bg-gray-50 disabled:text-gray-500"
-      :class="error ? 'border-red-300' : 'border-gray-300'"
+      class="block w-full rounded-lg border px-3 py-2 text-sm shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 disabled:bg-gray-50 dark:disabled:bg-gray-800 disabled:text-gray-500 dark:disabled:text-gray-500 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100 dark:placeholder-gray-400"
+      :class="error ? 'border-red-300 dark:border-red-500' : 'border-gray-300 dark:border-gray-600'"
       @change="$emit('update:modelValue', ($event.target as HTMLSelectElement).value)"
     >
       <option v-if="placeholder" value="" disabled>{{ placeholder }}</option>

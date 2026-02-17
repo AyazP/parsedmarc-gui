@@ -35,7 +35,7 @@ function openFilePicker() {
   <div
     class="border-2 border-dashed rounded-lg p-8 text-center transition-colors cursor-pointer"
     :class="[
-      dragging ? 'border-primary-400 bg-primary-50' : 'border-gray-300 hover:border-gray-400',
+      dragging ? 'border-primary-400 bg-primary-50 dark:bg-primary-900/20' : 'border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500',
       disabled ? 'opacity-50 cursor-not-allowed' : '',
     ]"
     @click="!disabled && openFilePicker()"
@@ -43,13 +43,13 @@ function openFilePicker() {
     @dragleave.prevent="dragging = false"
     @drop.prevent="handleDrop"
   >
-    <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <svg class="mx-auto h-12 w-12 text-gray-400 dark:text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
     </svg>
-    <p class="mt-2 text-sm text-gray-600">
-      <span class="font-semibold text-primary-600">Click to upload</span> or drag and drop
+    <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">
+      <span class="font-semibold text-primary-600 dark:text-primary-400">Click to upload</span> or drag and drop
     </p>
-    <p class="mt-1 text-xs text-gray-500">
+    <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
       <slot name="hint">XML, GZ, ZIP, EML, or MSG files</slot>
     </p>
     <input

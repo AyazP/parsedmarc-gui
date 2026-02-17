@@ -40,7 +40,7 @@ onMounted(async () => {
 
 <template>
   <div class="space-y-6">
-    <h1 class="text-2xl font-bold text-gray-900">Dashboard</h1>
+    <h1 class="text-2xl font-bold text-gray-900 dark:text-gray-100">Dashboard</h1>
 
     <div v-if="loading" class="flex justify-center py-12">
       <AppSpinner size="lg" />
@@ -50,18 +50,18 @@ onMounted(async () => {
       <!-- Stats -->
       <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <AppCard>
-          <p class="text-sm text-gray-500">Total Reports</p>
-          <p class="text-2xl font-bold text-gray-900 mt-1">{{ reportsTotal }}</p>
+          <p class="text-sm text-gray-500 dark:text-gray-400">Total Reports</p>
+          <p class="text-2xl font-bold text-gray-900 dark:text-gray-100 mt-1">{{ reportsTotal }}</p>
         </AppCard>
         <AppCard>
-          <p class="text-sm text-gray-500">Recent Jobs</p>
-          <p class="text-2xl font-bold text-gray-900 mt-1">{{ recentJobs.length }}</p>
+          <p class="text-sm text-gray-500 dark:text-gray-400">Recent Jobs</p>
+          <p class="text-2xl font-bold text-gray-900 dark:text-gray-100 mt-1">{{ recentJobs.length }}</p>
         </AppCard>
         <AppCard>
-          <p class="text-sm text-gray-500">System Status</p>
+          <p class="text-sm text-gray-500 dark:text-gray-400">System Status</p>
           <div class="flex items-center gap-2 mt-1">
             <span class="w-3 h-3 rounded-full" :class="appStore.health?.status === 'healthy' ? 'bg-green-500' : 'bg-red-500'" />
-            <span class="text-lg font-semibold text-gray-900">{{ appStore.health?.status === 'healthy' ? 'Healthy' : 'Unknown' }}</span>
+            <span class="text-lg font-semibold text-gray-900 dark:text-gray-100">{{ appStore.health?.status === 'healthy' ? 'Healthy' : 'Unknown' }}</span>
           </div>
         </AppCard>
       </div>
@@ -69,7 +69,7 @@ onMounted(async () => {
       <!-- Quick Actions -->
       <AppCard>
         <template #header>
-          <h2 class="text-base font-semibold text-gray-900">Quick Actions</h2>
+          <h2 class="text-base font-semibold text-gray-900 dark:text-gray-100">Quick Actions</h2>
         </template>
         <div class="flex flex-wrap gap-3">
           <AppButton @click="router.push('/upload')">Upload Report</AppButton>
@@ -82,19 +82,19 @@ onMounted(async () => {
       <AppCard>
         <template #header>
           <div class="flex items-center justify-between">
-            <h2 class="text-base font-semibold text-gray-900">Recent Parse Jobs</h2>
+            <h2 class="text-base font-semibold text-gray-900 dark:text-gray-100">Recent Parse Jobs</h2>
             <AppButton variant="ghost" size="sm" @click="router.push('/jobs')">View all</AppButton>
           </div>
         </template>
-        <div v-if="recentJobs.length === 0" class="text-sm text-gray-500 py-4 text-center">No parse jobs yet</div>
-        <div v-else class="divide-y divide-gray-100">
+        <div v-if="recentJobs.length === 0" class="text-sm text-gray-500 dark:text-gray-400 py-4 text-center">No parse jobs yet</div>
+        <div v-else class="divide-y divide-gray-100 dark:divide-gray-700">
           <div v-for="job in recentJobs" :key="job.id" class="flex items-center justify-between py-3">
             <div>
-              <p class="text-sm font-medium text-gray-900">{{ job.input_source || job.job_type }}</p>
-              <p class="text-xs text-gray-500">{{ new Date(job.created_at).toLocaleString() }}</p>
+              <p class="text-sm font-medium text-gray-900 dark:text-gray-100">{{ job.input_source || job.job_type }}</p>
+              <p class="text-xs text-gray-500 dark:text-gray-400">{{ new Date(job.created_at).toLocaleString() }}</p>
             </div>
             <div class="flex items-center gap-3">
-              <span class="text-xs text-gray-500">
+              <span class="text-xs text-gray-500 dark:text-gray-400">
                 {{ job.aggregate_reports_count + job.forensic_reports_count + job.smtp_tls_reports_count }} reports
               </span>
               <AppBadge :variant="statusVariant[job.status] ?? 'neutral'" :text="job.status" />

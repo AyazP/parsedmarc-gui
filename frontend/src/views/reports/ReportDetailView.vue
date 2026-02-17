@@ -48,7 +48,7 @@ function formatDate(dateStr: string | null): string {
       <AppButton variant="ghost" @click="router.push('/reports')">
         &larr; Back
       </AppButton>
-      <h1 class="text-2xl font-bold text-gray-900">Report Detail</h1>
+      <h1 class="text-2xl font-bold text-gray-900 dark:text-gray-100">Report Detail</h1>
     </div>
 
     <div v-if="loading" class="flex justify-center py-12">
@@ -58,41 +58,41 @@ function formatDate(dateStr: string | null): string {
     <template v-else-if="report">
       <AppCard>
         <template #header>
-          <h2 class="text-base font-semibold text-gray-900">Metadata</h2>
+          <h2 class="text-base font-semibold text-gray-900 dark:text-gray-100">Metadata</h2>
         </template>
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           <div>
-            <p class="text-xs text-gray-500">Type</p>
+            <p class="text-xs text-gray-500 dark:text-gray-400">Type</p>
             <AppBadge :text="report.report_type" :variant="typeVariant[report.report_type] ?? 'neutral'" />
           </div>
           <div>
-            <p class="text-xs text-gray-500">Organization</p>
-            <p class="text-sm font-medium text-gray-900">{{ report.org_name ?? '-' }}</p>
+            <p class="text-xs text-gray-500 dark:text-gray-400">Organization</p>
+            <p class="text-sm font-medium text-gray-900 dark:text-gray-100">{{ report.org_name ?? '-' }}</p>
           </div>
           <div>
-            <p class="text-xs text-gray-500">Domain</p>
-            <p class="text-sm font-medium text-gray-900">{{ report.domain ?? '-' }}</p>
+            <p class="text-xs text-gray-500 dark:text-gray-400">Domain</p>
+            <p class="text-sm font-medium text-gray-900 dark:text-gray-100">{{ report.domain ?? '-' }}</p>
           </div>
           <div>
-            <p class="text-xs text-gray-500">Report ID</p>
-            <p class="text-sm font-mono text-gray-600 break-all">{{ report.report_id ?? '-' }}</p>
+            <p class="text-xs text-gray-500 dark:text-gray-400">Report ID</p>
+            <p class="text-sm font-mono text-gray-600 dark:text-gray-400 break-all">{{ report.report_id ?? '-' }}</p>
           </div>
           <div>
-            <p class="text-xs text-gray-500">Date Range</p>
-            <p class="text-sm text-gray-900">
+            <p class="text-xs text-gray-500 dark:text-gray-400">Date Range</p>
+            <p class="text-sm text-gray-900 dark:text-gray-100">
               {{ formatDate(report.date_begin) }} — {{ formatDate(report.date_end) }}
             </p>
           </div>
           <div>
-            <p class="text-xs text-gray-500">Imported</p>
-            <p class="text-sm text-gray-900">{{ formatDate(report.created_at) }}</p>
+            <p class="text-xs text-gray-500 dark:text-gray-400">Imported</p>
+            <p class="text-sm text-gray-900 dark:text-gray-100">{{ formatDate(report.created_at) }}</p>
           </div>
         </div>
       </AppCard>
 
       <AppCard>
         <template #header>
-          <h2 class="text-base font-semibold text-gray-900">Report Data</h2>
+          <h2 class="text-base font-semibold text-gray-900 dark:text-gray-100">Report Data</h2>
         </template>
         <ReportJsonViewer :data="report.report_json" />
       </AppCard>

@@ -52,7 +52,7 @@ function handleDismiss() {
     <div class="space-y-4" v-if="updateStore.status">
       <!-- Version comparison -->
       <div class="flex items-center gap-3">
-        <span class="text-sm text-gray-500">
+        <span class="text-sm text-gray-500 dark:text-gray-400">
           {{ updateStore.status.current_version }}
         </span>
         <svg class="w-4 h-4 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
@@ -64,23 +64,23 @@ function handleDismiss() {
       </div>
 
       <!-- Published date -->
-      <p class="text-xs text-gray-500">
+      <p class="text-xs text-gray-500 dark:text-gray-400">
         Released: {{ formatDate(updateStore.status.published_at) }}
       </p>
 
       <!-- Release notes -->
       <div v-if="updateStore.status.release_notes" class="space-y-1">
-        <h4 class="text-sm font-medium text-gray-900">Release Notes</h4>
-        <div class="rounded-lg bg-gray-50 p-3 text-sm text-gray-700 max-h-48 overflow-auto whitespace-pre-wrap">
+        <h4 class="text-sm font-medium text-gray-900 dark:text-gray-100">Release Notes</h4>
+        <div class="rounded-lg bg-gray-50 dark:bg-gray-900 p-3 text-sm text-gray-700 dark:text-gray-300 max-h-48 overflow-auto whitespace-pre-wrap">
           {{ updateStore.status.release_notes }}
         </div>
       </div>
 
       <!-- Update instructions -->
       <div class="space-y-1">
-        <h4 class="text-sm font-medium text-gray-900">
+        <h4 class="text-sm font-medium text-gray-900 dark:text-gray-100">
           Update Instructions
-          <span class="text-xs font-normal text-gray-500 ml-1">
+          <span class="text-xs font-normal text-gray-500 dark:text-gray-400 ml-1">
             ({{ updateStore.status.is_docker ? 'Docker' : 'Git' }})
           </span>
         </h4>
@@ -92,7 +92,7 @@ function handleDismiss() {
         :href="updateStore.status.release_url"
         target="_blank"
         rel="noopener noreferrer"
-        class="inline-flex items-center gap-1 text-sm text-primary-600 hover:text-primary-700"
+        class="inline-flex items-center gap-1 text-sm text-primary-600 hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-300"
       >
         View on GitHub
         <svg class="w-3.5 h-3.5" viewBox="0 0 20 20" fill="currentColor">

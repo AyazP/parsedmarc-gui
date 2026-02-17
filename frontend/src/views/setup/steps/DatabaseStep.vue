@@ -14,8 +14,8 @@ watch(dbPath, () => {
 <template>
   <div class="space-y-6">
     <div>
-      <h2 class="text-xl font-semibold text-gray-900">Database Configuration</h2>
-      <p class="mt-2 text-sm text-gray-600">
+      <h2 class="text-xl font-semibold text-gray-900 dark:text-gray-100">Database Configuration</h2>
+      <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">
         Configure where ParseDMARC stores its data. The default SQLite database works well for most deployments.
       </p>
     </div>

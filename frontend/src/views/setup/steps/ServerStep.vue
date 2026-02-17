@@ -32,8 +32,8 @@ watch([host, port, corsOrigins, logLevel], () => {
 <template>
   <div class="space-y-6">
     <div>
-      <h2 class="text-xl font-semibold text-gray-900">Server Configuration</h2>
-      <p class="mt-2 text-sm text-gray-600">Configure how the application server listens for connections.</p>
+      <h2 class="text-xl font-semibold text-gray-900 dark:text-gray-100">Server Configuration</h2>
+      <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">Configure how the application server listens for connections.</p>
     </div>
 
     <div class="space-y-4">

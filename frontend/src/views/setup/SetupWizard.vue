@@ -30,9 +30,9 @@ function goToDashboard() {
 </script>
 
 <template>
-  <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+  <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
     <!-- Step progress -->
-    <div class="px-6 py-4 border-b border-gray-200 bg-gray-50">
+    <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900">
       <div class="flex items-center justify-between">
         <div v-for="step in steps" :key="step.num" class="flex items-center" :class="step.num < steps.length ? 'flex-1' : ''">
           <div class="flex items-center gap-2">
@@ -41,7 +41,7 @@ function goToDashboard() {
               :class="{
                 'bg-primary-600 text-white': setupStore.currentStep === step.num,
                 'bg-green-500 text-white': setupStore.currentStep > step.num,
-                'bg-gray-200 text-gray-600': setupStore.currentStep < step.num,
+                'bg-gray-200 dark:bg-gray-600 text-gray-600 dark:text-gray-300': setupStore.currentStep < step.num,
               }"
             >
               <svg v-if="setupStore.currentStep > step.num" class="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
@@ -49,9 +49,9 @@ function goToDashboard() {
               </svg>
               <span v-else>{{ step.num }}</span>
             </div>
-            <span class="text-sm font-medium hidden sm:inline" :class="setupStore.currentStep === step.num ? 'text-primary-700' : 'text-gray-500'">{{ step.label }}</span>
+            <span class="text-sm font-medium hidden sm:inline" :class="setupStore.currentStep === step.num ? 'text-primary-700 dark:text-primary-400' : 'text-gray-500 dark:text-gray-400'">{{ step.label }}</span>
           </div>
-          <div v-if="step.num < steps.length" class="flex-1 mx-4 h-px bg-gray-300" />
+          <div v-if="step.num < steps.length" class="flex-1 mx-4 h-px bg-gray-300 dark:bg-gray-600" />
         </div>
       </div>
     </div>
@@ -62,7 +62,7 @@ function goToDashboard() {
     </div>
 
     <!-- Navigation -->
-    <div class="px-6 py-4 border-t border-gray-200 bg-gray-50 flex justify-between">
+    <div class="px-6 py-4 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 flex justify-between">
       <AppButton v-if="setupStore.currentStep > 1 && !setupStore.completionResult" variant="secondary" @click="setupStore.prevStep()">
         Previous
       </AppButton>

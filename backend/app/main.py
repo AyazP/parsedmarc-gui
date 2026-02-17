@@ -147,26 +147,7 @@ try:
 except ImportError as e:
     logger.warning(f"updates router not available: {e}")
 
-# Serve static files (frontend) if available
-static_dir = Path(__file__).parent.parent.parent / "frontend" / "dist"
-if static_dir.exists():
-    app.mount("/assets", StaticFiles(directory=str(static_dir / "assets")), name="assets")
-
-    @app.get("/")
-    async def serve_frontend():
-        """Serve the frontend application."""
-        return FileResponse(str(static_dir / "index.html"))
-
-    @app.get("/{full_path:path}")
-    async def serve_frontend_spa(full_path: str):
-        """SPA catch-all: serve index.html for client-side routes."""
-        # Serve actual files from assets if they exist
-        file_path = static_dir / full_path
-        if file_path.exists() and file_path.is_file():
-            return FileResponse(str(file_path))
-        return FileResponse(str(static_dir / "index.html"))
-
-# Health check endpoint
+# Health check endpoint (must be before SPA catch-all)
 @app.get("/api/health")
 async def health_check():
     """Health check endpoint."""
@@ -186,13 +167,82 @@ async def system_info():
         "data_directory": str(settings.data_dir),
     }
 
+# Serve static files (frontend) if available
+# NOTE: SPA catch-all must be LAST — it captures all unmatched routes
+static_dir = Path(__file__).parent.parent.parent / "frontend" / "dist"
+if static_dir.exists():
+    app.mount("/assets", StaticFiles(directory=str(static_dir / "assets")), name="assets")
+
+    @app.get("/")
+    async def serve_frontend():
+        """Serve the frontend application."""
+        return FileResponse(str(static_dir / "index.html"))
+
+    @app.get("/{full_path:path}")
+    async def serve_frontend_spa(full_path: str):
+        """SPA catch-all: serve index.html for client-side routes."""
+        # Serve actual files from assets if they exist
+        file_path = static_dir / full_path
+        if file_path.exists() and file_path.is_file():
+            return FileResponse(str(file_path))
+        return FileResponse(str(static_dir / "index.html"))
+
+
+def _resolve_ssl_files():
+    """Resolve SSL certificate and key file paths.
+
+    Returns (certfile, keyfile) tuple, or (None, None) if SSL is not enabled
+    or certificate files are not found.
+    """
+    if not settings.ssl_enabled:
+        return None, None
+
+    # Use explicit paths if provided
+    if settings.ssl_certfile and settings.ssl_keyfile:
+        cert = Path(settings.ssl_certfile)
+        key = Path(settings.ssl_keyfile)
+        if cert.exists() and key.exists():
+            return str(cert), str(key)
+        logger.warning(f"SSL enabled but explicit cert/key files not found: {cert}, {key}")
+        return None, None
+
+    # Auto-detect from data/certificates/
+    cert_dir = settings.data_dir / "certificates"
+
+    # Prefer Let's Encrypt over self-signed
+    le_cert = cert_dir / "letsencrypt-fullchain.crt"
+    le_key = cert_dir / "letsencrypt.key"
+    if le_cert.exists() and le_key.exists():
+        return str(le_cert), str(le_key)
+
+    ss_cert = cert_dir / "selfsigned.crt"
+    ss_key = cert_dir / "selfsigned.key"
+    if ss_cert.exists() and ss_key.exists():
+        return str(ss_cert), str(ss_key)
+
+    logger.warning("SSL enabled but no certificate files found in %s", cert_dir)
+    return None, None
+
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(
-        "app.main:app",
-        host=settings.host,
-        port=settings.port,
-        reload=True,
-        log_level=settings.log_level.lower()
-    )
+
+    kwargs = {
+        "app": "app.main:app",
+        "host": settings.host,
+        "port": settings.port,
+        "reload": True,
+        "log_level": settings.log_level.lower(),
+    }
+
+    ssl_cert, ssl_key = _resolve_ssl_files()
+    if ssl_cert and ssl_key:
+        kwargs["ssl_certfile"] = ssl_cert
+        kwargs["ssl_keyfile"] = ssl_key
+        logger.info("HTTPS enabled (cert=%s)", ssl_cert)
+    else:
+        if settings.ssl_enabled:
+            logger.warning("SSL enabled in config but no valid certificates found — falling back to HTTP")
+        logger.info("HTTP mode (no SSL)")
+
+    uvicorn.run(**kwargs)

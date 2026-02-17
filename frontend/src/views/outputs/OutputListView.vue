@@ -61,7 +61,7 @@ const typeLabels: Record<string, string> = {
 <template>
   <div class="space-y-6">
     <div class="flex items-center justify-between">
-      <h1 class="text-2xl font-bold text-gray-900">Output Configs</h1>
+      <h1 class="text-2xl font-bold text-gray-900 dark:text-gray-100">Output Configs</h1>
       <AppButton @click="router.push('/outputs/new')">Add Output</AppButton>
     </div>
 
@@ -89,7 +89,7 @@ const typeLabels: Record<string, string> = {
 
     <!-- Confirm Dialog -->
     <AppModal :open="isOpen" :title="title" @close="handleCancel">
-      <p class="text-sm text-gray-600">{{ message }}</p>
+      <p class="text-sm text-gray-600 dark:text-gray-400">{{ message }}</p>
       <template #footer>
         <div class="flex justify-end gap-3">
           <AppButton variant="secondary" @click="handleCancel">Cancel</AppButton>

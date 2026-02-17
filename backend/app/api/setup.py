@@ -324,11 +324,29 @@ def setup_ssl(
             setup.ssl_type = "custom"
             db.commit()
 
+        # Enable SSL in .env so uvicorn uses HTTPS on next restart
+        env_path = Path(__file__).parent.parent.parent.parent / ".env"
+        env_content = ""
+        if env_path.exists():
+            with open(env_path, "r") as f:
+                env_content = f.read()
+        lines = env_content.split("\n")
+        ssl_updated = False
+        for i, line in enumerate(lines):
+            if line.startswith("PARSEDMARC_SSL_ENABLED="):
+                lines[i] = "PARSEDMARC_SSL_ENABLED=true"
+                ssl_updated = True
+                break
+        if not ssl_updated:
+            lines.append("PARSEDMARC_SSL_ENABLED=true")
+        with open(env_path, "w") as f:
+            f.write("\n".join(lines))
+
         logger.info(f"SSL configured successfully: {ssl_config.type}")
 
         return SetupStepResponse(
             success=True,
-            message=f"SSL certificate configured successfully ({ssl_config.type})",
+            message=f"SSL certificate configured successfully ({ssl_config.type}). Restart the application to enable HTTPS.",
             data=result
         )
 
@@ -528,7 +546,8 @@ def complete_setup(
             "PARSEDMARC_PORT": str(setup_data.port),
             "PARSEDMARC_CORS_ORIGINS": setup_data.cors_origins,
             "PARSEDMARC_LOG_LEVEL": setup_data.log_level,
-            "PARSEDMARC_DB_PATH": setup_data.db_path
+            "PARSEDMARC_DB_PATH": setup_data.db_path,
+            "PARSEDMARC_SSL_ENABLED": "true" if setup_data.ssl_type != "skip" else "false"
         }
 
         for key, value in env_updates.items():

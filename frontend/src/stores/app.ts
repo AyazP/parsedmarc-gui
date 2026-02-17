@@ -18,6 +18,7 @@ export const useAppStore = defineStore('app', () => {
   const sidebarCollapsed = ref(false)
   const toasts = ref<ToastNotification[]>([])
   const initialized = ref(false)
+  const darkMode = ref(false)
 
   async function fetchHealth() {
     try {
@@ -39,6 +40,26 @@ export const useAppStore = defineStore('app', () => {
     sidebarCollapsed.value = !sidebarCollapsed.value
   }
 
+  function initDarkMode() {
+    const stored = localStorage.getItem('parsedmarc-dark-mode')
+    if (stored !== null) {
+      darkMode.value = stored === 'true'
+    } else {
+      darkMode.value = window.matchMedia('(prefers-color-scheme: dark)').matches
+    }
+    applyDarkMode()
+  }
+
+  function toggleDarkMode() {
+    darkMode.value = !darkMode.value
+    localStorage.setItem('parsedmarc-dark-mode', String(darkMode.value))
+    applyDarkMode()
+  }
+
+  function applyDarkMode() {
+    document.documentElement.classList.toggle('dark', darkMode.value)
+  }
+
   function addToast(toast: Omit<ToastNotification, 'id'>) {
     const id = `toast_${++toastCounter}`
     toasts.value.push({ ...toast, id })
@@ -52,6 +73,7 @@ export const useAppStore = defineStore('app', () => {
   }
 
   async function initialize() {
+    initDarkMode()
     await Promise.all([fetchHealth(), fetchSystemInfo()])
     initialized.value = true
   }
@@ -62,9 +84,12 @@ export const useAppStore = defineStore('app', () => {
     sidebarCollapsed,
     toasts,
     initialized,
+    darkMode,
     fetchHealth,
     fetchSystemInfo,
     toggleSidebar,
+    initDarkMode,
+    toggleDarkMode,
     addToast,
     removeToast,
     initialize,

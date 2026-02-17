@@ -1,7 +1,7 @@
 """Application configuration."""
 import os
 from pathlib import Path
-from typing import List, Union
+from typing import List, Optional, Union
 from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -51,6 +51,11 @@ class Settings(BaseSettings):
     update_check_enabled: bool = Field(default=True, validation_alias="PARSEDMARC_UPDATE_CHECK_ENABLED")
     update_check_interval_hours: int = Field(default=24, ge=1, le=168, validation_alias="PARSEDMARC_UPDATE_CHECK_INTERVAL")
     docker_mode: bool = Field(default=False, validation_alias="PARSEDMARC_DOCKER")
+
+    # SSL/TLS
+    ssl_enabled: bool = Field(default=False, validation_alias="PARSEDMARC_SSL_ENABLED")
+    ssl_certfile: Optional[str] = Field(default=None, validation_alias="PARSEDMARC_SSL_CERTFILE")
+    ssl_keyfile: Optional[str] = Field(default=None, validation_alias="PARSEDMARC_SSL_KEYFILE")
 
     @property
     def cors_origins(self) -> List[str]:

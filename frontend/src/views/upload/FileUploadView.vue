@@ -64,11 +64,11 @@ const statusVariant: Record<string, 'success' | 'error' | 'info' | 'neutral'> = 
 
 <template>
   <div class="space-y-6">
-    <h1 class="text-2xl font-bold text-gray-900">Upload Report</h1>
+    <h1 class="text-2xl font-bold text-gray-900 dark:text-gray-100">Upload Report</h1>
 
     <AppCard>
       <template #header>
-        <h2 class="text-base font-semibold text-gray-900">Upload DMARC Report File</h2>
+        <h2 class="text-base font-semibold text-gray-900 dark:text-gray-100">Upload DMARC Report File</h2>
       </template>
       <div class="space-y-4">
         <FileDropZone
@@ -77,10 +77,10 @@ const statusVariant: Record<string, 'success' | 'error' | 'info' | 'neutral'> = 
           @file-selected="handleFileSelected"
         />
 
-        <div v-if="selectedFile" class="flex items-center justify-between rounded-lg bg-gray-50 px-4 py-3">
+        <div v-if="selectedFile" class="flex items-center justify-between rounded-lg bg-gray-50 dark:bg-gray-900 px-4 py-3">
           <div>
-            <p class="text-sm font-medium text-gray-900">{{ selectedFile.name }}</p>
-            <p class="text-xs text-gray-500">{{ formatBytes(selectedFile.size) }}</p>
+            <p class="text-sm font-medium text-gray-900 dark:text-gray-100">{{ selectedFile.name }}</p>
+            <p class="text-xs text-gray-500 dark:text-gray-400">{{ formatBytes(selectedFile.size) }}</p>
           </div>
           <div class="flex items-center gap-2">
             <AppButton size="sm" variant="secondary" :disabled="uploading" @click="reset">Clear</AppButton>
@@ -94,28 +94,28 @@ const statusVariant: Record<string, 'success' | 'error' | 'info' | 'neutral'> = 
 
     <AppCard v-if="result">
       <template #header>
-        <h2 class="text-base font-semibold text-gray-900">Parse Result</h2>
+        <h2 class="text-base font-semibold text-gray-900 dark:text-gray-100">Parse Result</h2>
       </template>
       <div class="space-y-3">
         <div class="flex items-center gap-3">
-          <span class="text-sm text-gray-600">Status:</span>
+          <span class="text-sm text-gray-600 dark:text-gray-400">Status:</span>
           <AppBadge :text="result.status" :variant="statusVariant[result.status] ?? 'neutral'" />
         </div>
-        <div v-if="result.error_message" class="text-sm text-red-600">
+        <div v-if="result.error_message" class="text-sm text-red-600 dark:text-red-400">
           {{ result.error_message }}
         </div>
         <div class="grid grid-cols-3 gap-4">
-          <div class="text-center p-3 bg-gray-50 rounded-lg">
-            <p class="text-2xl font-bold text-gray-900">{{ result.aggregate_reports_count }}</p>
-            <p class="text-xs text-gray-500">Aggregate</p>
+          <div class="text-center p-3 bg-gray-50 dark:bg-gray-900 rounded-lg">
+            <p class="text-2xl font-bold text-gray-900 dark:text-gray-100">{{ result.aggregate_reports_count }}</p>
+            <p class="text-xs text-gray-500 dark:text-gray-400">Aggregate</p>
           </div>
-          <div class="text-center p-3 bg-gray-50 rounded-lg">
-            <p class="text-2xl font-bold text-gray-900">{{ result.forensic_reports_count }}</p>
-            <p class="text-xs text-gray-500">Forensic</p>
+          <div class="text-center p-3 bg-gray-50 dark:bg-gray-900 rounded-lg">
+            <p class="text-2xl font-bold text-gray-900 dark:text-gray-100">{{ result.forensic_reports_count }}</p>
+            <p class="text-xs text-gray-500 dark:text-gray-400">Forensic</p>
           </div>
-          <div class="text-center p-3 bg-gray-50 rounded-lg">
-            <p class="text-2xl font-bold text-gray-900">{{ result.smtp_tls_reports_count }}</p>
-            <p class="text-xs text-gray-500">SMTP TLS</p>
+          <div class="text-center p-3 bg-gray-50 dark:bg-gray-900 rounded-lg">
+            <p class="text-2xl font-bold text-gray-900 dark:text-gray-100">{{ result.smtp_tls_reports_count }}</p>
+            <p class="text-xs text-gray-500 dark:text-gray-400">SMTP TLS</p>
           </div>
         </div>
         <div class="flex justify-end gap-3">

@@ -17,8 +17,8 @@ defineEmits<{
       role="switch"
       :aria-checked="modelValue"
       :disabled="disabled"
-      class="relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
-      :class="modelValue ? 'bg-primary-600' : 'bg-gray-200'"
+      class="relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 disabled:opacity-50 disabled:cursor-not-allowed"
+      :class="modelValue ? 'bg-primary-600' : 'bg-gray-200 dark:bg-gray-600'"
       @click="$emit('update:modelValue', !modelValue)"
     >
       <span
@@ -26,6 +26,6 @@ defineEmits<{
         :class="modelValue ? 'translate-x-5' : 'translate-x-0'"
       />
     </button>
-    <span v-if="label" class="text-sm text-gray-700">{{ label }}</span>
+    <span v-if="label" class="text-sm text-gray-700 dark:text-gray-300">{{ label }}</span>
   </div>
 </template>
