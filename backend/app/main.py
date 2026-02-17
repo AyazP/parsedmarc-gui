@@ -1,7 +1,7 @@
 """FastAPI application entry point."""
 import logging
 from contextlib import asynccontextmanager
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
@@ -90,62 +90,21 @@ app.add_middleware(
 # Import and register routers
 # Import each router individually to handle missing modules gracefully
 
-# Setup wizard router (should always be available)
-try:
-    from app.api import setup
-    app.include_router(setup.router)
-    logger.info("Registered setup router")
-except ImportError as e:
-    logger.warning(f"setup router not available: {e}")
+def _register_router(module_name: str):
+    """Import and register an API router, logging errors on failure."""
+    import importlib
+    try:
+        module = importlib.import_module(f"app.api.{module_name}")
+        app.include_router(module.router)
+        logger.info("Registered %s router", module_name)
+    except Exception as e:
+        logger.error("Failed to register %s router: %s", module_name, e)
 
-try:
-    from app.api import mailbox_configs
-    app.include_router(mailbox_configs.router)
-    logger.info("Registered mailbox_configs router")
-except ImportError as e:
-    logger.warning(f"mailbox_configs router not available: {e}")
-
-try:
-    from app.api import output_configs
-    app.include_router(output_configs.router)
-    logger.info("Registered output_configs router")
-except ImportError as e:
-    logger.warning(f"output_configs router not available: {e}")
-
-try:
-    from app.api import testing
-    app.include_router(testing.router)
-    logger.info("Registered testing router")
-except ImportError as e:
-    logger.warning(f"testing router not available: {e}")
-
-try:
-    from app.api import parsing
-    app.include_router(parsing.router)
-    logger.info("Registered parsing router")
-except ImportError as e:
-    logger.warning(f"parsing router not available: {e}")
-
-try:
-    from app.api import monitoring
-    app.include_router(monitoring.router)
-    logger.info("Registered monitoring router")
-except ImportError as e:
-    logger.warning(f"monitoring router not available: {e}")
-
-try:
-    from app.api import dashboard
-    app.include_router(dashboard.router)
-    logger.info("Registered dashboard router")
-except ImportError as e:
-    logger.warning(f"dashboard router not available: {e}")
-
-try:
-    from app.api import updates
-    app.include_router(updates.router)
-    logger.info("Registered updates router")
-except ImportError as e:
-    logger.warning(f"updates router not available: {e}")
+for _router_name in [
+    "setup", "mailbox_configs", "output_configs", "testing",
+    "parsing", "monitoring", "dashboard", "updates",
+]:
+    _register_router(_router_name)
 
 # Health check endpoint (must be before SPA catch-all)
 @app.get("/api/health")
@@ -181,7 +140,11 @@ if static_dir.exists():
     @app.get("/{full_path:path}")
     async def serve_frontend_spa(full_path: str):
         """SPA catch-all: serve index.html for client-side routes."""
-        # Serve actual files from assets if they exist
+        # Never intercept API routes — return 404 so unregistered API
+        # endpoints don't get a misleading 405 from this GET-only handler.
+        if full_path.startswith("api/"):
+            raise HTTPException(status_code=404, detail="Not found")
+        # Serve actual files from dist if they exist
         file_path = static_dir / full_path
         if file_path.exists() and file_path.is_file():
             return FileResponse(str(file_path))

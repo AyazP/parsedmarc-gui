@@ -3,13 +3,6 @@ import logging
 from pathlib import Path
 from typing import Dict, Any
 
-from parsedmarc.mail import (
-    MailboxConnection,
-    IMAPConnection,
-    MSGraphConnection,
-    GmailConnection,
-    MaildirConnection,
-)
 from app.models.mailbox_config import MailboxConfig
 from app.services.encryption_service import encryption_service
 from app.config import settings
@@ -20,7 +13,7 @@ logger = logging.getLogger(__name__)
 class MailboxService:
     """Factory for creating parsedmarc MailboxConnection instances from DB configs."""
 
-    def create_connection(self, config: MailboxConfig) -> MailboxConnection:
+    def create_connection(self, config: MailboxConfig) -> "MailboxConnection":
         """
         Create a MailboxConnection from a MailboxConfig database record.
 
@@ -62,8 +55,9 @@ class MailboxService:
         else:
             return type_to_method[config.type](settings_dict)
 
-    def _create_imap_connection(self, settings_dict: Dict[str, Any]) -> IMAPConnection:
+    def _create_imap_connection(self, settings_dict: Dict[str, Any]):
         """Decrypt IMAP settings and create IMAPConnection."""
+        from parsedmarc.mail import IMAPConnection
         return IMAPConnection(
             host=settings_dict["host"],
             user=settings_dict["username"],
@@ -75,8 +69,9 @@ class MailboxService:
 
     def _create_msgraph_connection(
         self, settings_dict: Dict[str, Any]
-    ) -> MSGraphConnection:
+    ):
         """Decrypt MSGraph settings and create MSGraphConnection."""
+        from parsedmarc.mail import MSGraphConnection
         token_file = settings_dict.get("token_file")
         if not token_file:
             token_file = self._resolve_token_path(
@@ -105,8 +100,9 @@ class MailboxService:
 
     def _create_gmail_connection(
         self, settings_dict: Dict[str, Any], config: MailboxConfig
-    ) -> GmailConnection:
+    ):
         """Decrypt Gmail settings and create GmailConnection."""
+        from parsedmarc.mail import GmailConnection
         token_file = settings_dict.get("token_file")
         if not token_file:
             token_file = self._resolve_token_path(
@@ -127,8 +123,9 @@ class MailboxService:
 
     def _create_maildir_connection(
         self, settings_dict: Dict[str, Any]
-    ) -> MaildirConnection:
+    ):
         """Decrypt Maildir settings and create MaildirConnection."""
+        from parsedmarc.mail import MaildirConnection
         return MaildirConnection(
             maildir_path=settings_dict["path"],
             maildir_create=False,

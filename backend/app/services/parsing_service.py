@@ -6,11 +6,6 @@ from typing import Optional, Dict, Any
 
 from sqlalchemy.orm import Session
 
-from parsedmarc import (
-    get_dmarc_reports_from_mailbox,
-    parse_report_file,
-)
-
 from app.models.mailbox_config import MailboxConfig
 from app.models.parse_job import ParseJob
 from app.models.parsed_report import ParsedReport
@@ -53,6 +48,8 @@ class ParsingService:
                 f"Fetching reports from '{config.name}' "
                 f"(folder={reports_folder}, batch={effective_batch_size})"
             )
+
+            from parsedmarc import get_dmarc_reports_from_mailbox
 
             results = get_dmarc_reports_from_mailbox(
                 connection,
@@ -126,6 +123,8 @@ class ParsingService:
         db.commit()
 
         try:
+            from parsedmarc import parse_report_file
+
             logger.info(f"Parsing uploaded file: {original_filename}")
             parsed = parse_report_file(file_path)
 
