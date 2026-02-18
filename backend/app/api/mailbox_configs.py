@@ -245,5 +245,12 @@ def test_mailbox_connection(
             detail=f"Mailbox configuration with ID {config_id} not found",
         )
 
-    result = mailbox_service.test_connection(config)
-    return result
+    try:
+        result = mailbox_service.test_connection(config)
+        return result
+    except Exception as e:
+        logger.error(f"Mailbox connection test failed for config {config_id}: {e}")
+        return ConnectionTestResponse(
+            success=False,
+            message="Connection test failed. Check mailbox settings and try again.",
+        )

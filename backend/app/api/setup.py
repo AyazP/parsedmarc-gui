@@ -31,6 +31,22 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/setup", tags=["Setup Wizard"])
 
+
+def _validate_db_path(db_path: str) -> Path:
+    """Validate a SQLite database path is safe (no path traversal)."""
+    path = Path(db_path).resolve()
+    # Must be within data_dir or current working directory
+    allowed_roots = [settings.data_dir.resolve(), Path.cwd().resolve()]
+    for root in allowed_roots:
+        try:
+            path.relative_to(root)
+            return path
+        except ValueError:
+            continue
+    raise ValueError(
+        f"Database path must be within the data directory ({settings.data_dir})"
+    )
+
 # Initialize certificate service
 cert_service = CertificateService(cert_dir=settings.data_dir / "certificates")
 
@@ -139,8 +155,7 @@ def setup_encryption_key(
             lines.append(f"PARSEDMARC_ENCRYPTION_KEY={encryption_key}")
 
         # Write back to .env
-        with open(env_path, "w") as f:
-            f.write("\n".join(lines))
+        _secure_write_env(env_path, "\n".join(lines))
 
         # Update setup status
         setup = get_setup_status(db)
@@ -206,8 +221,7 @@ def setup_admin_credentials(
             lines.append(f"PARSEDMARC_GUI_PASSWORD={credentials.password}")
 
         # Write back to .env
-        with open(env_path, "w") as f:
-            f.write("\n".join(lines))
+        _secure_write_env(env_path, "\n".join(lines))
 
         # Update setup status
         setup = get_setup_status(db)
@@ -348,8 +362,7 @@ def setup_ssl(
                 break
         if not ssl_updated:
             lines.append("PARSEDMARC_SSL_ENABLED=true")
-        with open(env_path, "w") as f:
-            f.write("\n".join(lines))
+        _secure_write_env(env_path, "\n".join(lines))
 
         logger.info(f"SSL configured successfully: {ssl_config.type}")
 
@@ -405,8 +418,7 @@ def setup_server(
                 lines.append(f"{key}={value}")
 
         # Write back to .env
-        with open(env_path, "w") as f:
-            f.write("\n".join(lines))
+        _secure_write_env(env_path, "\n".join(lines))
 
         # Update setup status
         setup = get_setup_status(db)
@@ -454,12 +466,13 @@ def setup_database(
         lines = env_content.split("\n")
 
         if db_config.db_type == "sqlite":
+            # Validate path before using
+            validated_path = _validate_db_path(db_config.db_path)
             # SQLite: set DB_PATH, remove DATABASE_URL if present
-            _update_env_lines(lines, "PARSEDMARC_DB_PATH", db_config.db_path)
+            _update_env_lines(lines, "PARSEDMARC_DB_PATH", str(validated_path))
             _remove_env_line(lines, "PARSEDMARC_DATABASE_URL")
 
-            db_path = Path(db_config.db_path)
-            db_path.parent.mkdir(parents=True, exist_ok=True)
+            validated_path.parent.mkdir(parents=True, exist_ok=True)
         else:
             # PostgreSQL/MySQL: set DATABASE_URL
             database_url = _build_database_url(
@@ -470,8 +483,7 @@ def setup_database(
             )
             _update_env_lines(lines, "PARSEDMARC_DATABASE_URL", database_url)
 
-        with open(env_path, "w") as f:
-            f.write("\n".join(lines))
+        _secure_write_env(env_path, "\n".join(lines))
 
         setup = get_setup_status(db)
         setup.database_configured = True
@@ -599,13 +611,12 @@ def complete_setup(
             _remove_env_line(lines, "PARSEDMARC_DB_PATH")
 
         # Write back to .env
-        with open(env_path, "w") as f:
-            f.write("\n".join(lines))
+        _secure_write_env(env_path, "\n".join(lines))
 
         # 4. Ensure database directory exists (SQLite only)
         if db_type == "sqlite":
-            db_path = Path(setup_data.db_path)
-            db_path.parent.mkdir(parents=True, exist_ok=True)
+            validated_db_path = _validate_db_path(setup_data.db_path)
+            validated_db_path.parent.mkdir(parents=True, exist_ok=True)
 
         # 5. Update setup status
         setup = get_setup_status(db)
@@ -716,6 +727,16 @@ def renew_certificate(db: Session = Depends(get_db)):
 #  .env helpers
 # ------------------------------------------------------------------ #
 
+def _secure_write_env(env_path: Path, content: str) -> None:
+    """Write content to .env file with restrictive permissions."""
+    with open(env_path, "w") as f:
+        f.write(content)
+    try:
+        os.chmod(env_path, 0o600)
+    except OSError:
+        pass  # chmod not supported on Windows
+
+
 def _update_env_lines(lines: list, key: str, value: str) -> None:
     """Update or append a key=value pair in an env lines list (in-place)."""
     for i, line in enumerate(lines):
@@ -762,8 +783,7 @@ def _update_env_ssl(cert_path: str, key_path: str) -> None:
         if not found:
             lines.append(f"{key}={value}")
 
-    with open(env_path, "w") as f:
-        f.write("\n".join(lines))
+    _secure_write_env(env_path, "\n".join(lines))
 
 
 @router.post("/ssl/upload", response_model=SetupStepResponse)

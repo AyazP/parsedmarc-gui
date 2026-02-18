@@ -1,5 +1,6 @@
 """Settings API endpoints (database management)."""
 import logging
+import os
 from pathlib import Path
 
 from fastapi import APIRouter, HTTPException, status
@@ -172,3 +173,7 @@ def _update_env(key: str, value: str):
 
     with open(env_path, "w") as f:
         f.write("\n".join(lines))
+    try:
+        os.chmod(env_path, 0o600)
+    except OSError:
+        pass  # chmod not supported on Windows

@@ -145,9 +145,9 @@ if static_dir.exists():
         # endpoints don't get a misleading 405 from this GET-only handler.
         if full_path.startswith("api/"):
             raise HTTPException(status_code=404, detail="Not found")
-        # Serve actual files from dist if they exist
-        file_path = static_dir / full_path
-        if file_path.exists() and file_path.is_file():
+        # Serve actual files from dist if they exist, with path traversal protection
+        file_path = (static_dir / full_path).resolve()
+        if file_path.is_relative_to(static_dir.resolve()) and file_path.is_file():
             return FileResponse(str(file_path))
         return FileResponse(str(static_dir / "index.html"))
 

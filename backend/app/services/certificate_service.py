@@ -1,5 +1,6 @@
 """SSL/TLS certificate management service."""
 import os
+import re
 import ssl
 import shutil
 import subprocess
@@ -17,6 +18,26 @@ from cryptography.hazmat.backends import default_backend
 import logging
 
 logger = logging.getLogger(__name__)
+
+# Validation patterns for user-supplied inputs used in subprocesses/paths
+_DOMAIN_RE = re.compile(r"^(?:[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}$")
+_EMAIL_RE = re.compile(r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$")
+
+
+def _validate_domain(domain: str) -> str:
+    """Validate and return a safe domain name."""
+    domain = domain.strip().lower()
+    if not domain or len(domain) > 253 or not _DOMAIN_RE.match(domain):
+        raise ValueError(f"Invalid domain name")
+    return domain
+
+
+def _validate_email(email: str) -> str:
+    """Validate and return a safe email address."""
+    email = email.strip().lower()
+    if not email or len(email) > 254 or not _EMAIL_RE.match(email):
+        raise ValueError(f"Invalid email address")
+    return email
 
 
 class CertificateService:
@@ -303,6 +324,13 @@ class CertificateService:
             credentials: Provider-specific credentials dict
             staging: Use Let's Encrypt staging server for testing
         """
+        # Validate inputs before using in subprocess/paths
+        try:
+            domain = _validate_domain(domain)
+            email = _validate_email(email)
+        except ValueError as e:
+            return {"success": False, "error": str(e)}
+
         logger.info(
             f"Requesting Let's Encrypt certificate for {domain} via DNS-01 ({provider})"
         )
@@ -317,7 +345,7 @@ class CertificateService:
         except ValueError as e:
             return {"success": False, "error": str(e)}
 
-        # Build certbot command
+        # Build certbot command — domain/email already validated above
         cmd = [
             "certbot", "certonly",
             "--non-interactive",
@@ -332,7 +360,7 @@ class CertificateService:
         if staging:
             cmd.append("--staging")
 
-        cert_base = Path(f"/etc/letsencrypt/live/{domain}")
+        cert_base = Path("/etc/letsencrypt/live") / domain
 
         try:
             result = subprocess.run(
@@ -484,8 +512,16 @@ class CertificateService:
         staging: bool = False,
     ) -> Dict[str, Any]:
         """Request a Let's Encrypt certificate using HTTP-01 challenge."""
+        # Validate inputs before using in subprocess/paths
+        try:
+            domain = _validate_domain(domain)
+            email = _validate_email(email)
+        except ValueError as e:
+            return {"success": False, "error": str(e)}
+
         logger.info(f"Requesting Let's Encrypt certificate for {domain}")
 
+        # Build certbot command — domain/email already validated above
         cmd = [
             "certbot", "certonly",
             "--non-interactive",
@@ -502,7 +538,7 @@ class CertificateService:
         else:
             cmd.append("--standalone")
 
-        cert_base = Path(f"/etc/letsencrypt/live/{domain}")
+        cert_base = Path("/etc/letsencrypt/live") / domain
 
         try:
             result = subprocess.run(
@@ -548,14 +584,31 @@ class CertificateService:
 
     def _copy_letsencrypt_certs(self, cert_base: Path) -> None:
         """Copy certbot output files to the app cert directory."""
-        shutil.copy2(cert_base / "privkey.pem", self.letsencrypt_key)
+        # Verify cert_base is within the expected Let's Encrypt directory
+        le_root = Path("/etc/letsencrypt/live")
+        resolved_base = cert_base.resolve()
+        try:
+            resolved_base.relative_to(le_root.resolve())
+        except ValueError:
+            raise ValueError(
+                f"Certificate path {cert_base} is not within {le_root}"
+            )
+
+        for src_name, dest in [
+            ("privkey.pem", self.letsencrypt_key),
+            ("cert.pem", self.letsencrypt_cert),
+            ("chain.pem", self.letsencrypt_chain),
+            ("fullchain.pem", self.letsencrypt_fullchain),
+        ]:
+            src = resolved_base / src_name
+            if not src.exists():
+                raise FileNotFoundError(f"Expected certificate file not found: {src_name}")
+            shutil.copy2(src, dest)
+
         try:
             os.chmod(self.letsencrypt_key, 0o600)
         except OSError:
             pass
-        shutil.copy2(cert_base / "cert.pem", self.letsencrypt_cert)
-        shutil.copy2(cert_base / "chain.pem", self.letsencrypt_chain)
-        shutil.copy2(cert_base / "fullchain.pem", self.letsencrypt_fullchain)
 
     # ------------------------------------------------------------------ #
     #  Renewal (with bug fix — re-copies files after certbot renew)
@@ -574,6 +627,10 @@ class CertificateService:
             f"{f' for {domain}' if domain else 's'}"
         )
 
+        # Validate domain before using in subprocess/paths
+        if domain:
+            domain = _validate_domain(domain)
+
         cmd = ["certbot", "renew", "--non-interactive"]
         if domain:
             cmd.extend(["--cert-name", domain])
@@ -586,7 +643,7 @@ class CertificateService:
 
             # Re-copy renewed files to app cert directory
             if domain:
-                cert_base = Path(f"/etc/letsencrypt/live/{domain}")
+                cert_base = Path("/etc/letsencrypt/live") / domain
                 if cert_base.exists():
                     self._copy_letsencrypt_certs(cert_base)
                     logger.info(
