@@ -1,9 +1,9 @@
 """Setup wizard API endpoints."""
 import os
 from pathlib import Path
-from typing import Union
+from typing import Optional, Union
 from datetime import datetime
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, status
 from sqlalchemy.orm import Session
 from cryptography.fernet import Fernet
 
@@ -20,7 +20,8 @@ from app.schemas.setup import (
     CompleteSetup,
     SetupStatusResponse,
     SetupStepResponse,
-    CertificateInfo
+    CertificateInfo,
+    CertificateValidationResult,
 )
 from app.services.certificate_service import CertificateService
 from app.config import settings
@@ -267,17 +268,25 @@ def setup_ssl(
             logger.info(f"Self-signed certificate configured with serial: {result.get('serial_number')}")
 
         elif isinstance(ssl_config, SSLSetupLetsEncrypt):
-            # Request Let's Encrypt certificate
-            webroot = Path(ssl_config.webroot_path) if ssl_config.webroot_path else None
-            result = cert_service.request_letsencrypt_certificate(
-                domain=ssl_config.domain,
-                email=ssl_config.email,
-                webroot_path=webroot,
-                staging=ssl_config.staging
-            )
+            # Dispatch between HTTP-01 and DNS-01 challenge
+            if ssl_config.challenge_type == "dns-01":
+                result = cert_service.request_letsencrypt_certificate_dns(
+                    domain=ssl_config.domain,
+                    email=ssl_config.email,
+                    provider=ssl_config.dns_provider,
+                    credentials=ssl_config.dns_credentials or {},
+                    staging=ssl_config.staging,
+                )
+            else:
+                webroot = Path(ssl_config.webroot_path) if ssl_config.webroot_path else None
+                result = cert_service.request_letsencrypt_certificate(
+                    domain=ssl_config.domain,
+                    email=ssl_config.email,
+                    webroot_path=webroot,
+                    staging=ssl_config.staging,
+                )
 
             if result.get("success"):
-                # Update setup status
                 setup = get_setup_status(db)
                 setup.ssl_configured = True
                 setup.ssl_type = "letsencrypt"
@@ -419,6 +428,16 @@ def setup_server(
         )
 
 
+def _build_database_url(db_type: str, db_host: str, db_port: int,
+                        db_name: str, db_user: str, db_password: str) -> str:
+    """Build a SQLAlchemy database URL from setup fields."""
+    if db_type == "postgresql":
+        return f"postgresql+psycopg2://{db_user}:{db_password}@{db_host}:{db_port}/{db_name}"
+    elif db_type == "mysql":
+        return f"mysql+pymysql://{db_user}:{db_password}@{db_host}:{db_port}/{db_name}"
+    raise ValueError(f"Unsupported database type: {db_type}")
+
+
 @router.post("/database", response_model=SetupStepResponse)
 def setup_database(
     db_config: DatabaseSetup,
@@ -426,42 +445,39 @@ def setup_database(
 ):
     """Set up database configuration."""
     try:
-        # Update .env file
         env_path = Path(__file__).parent.parent.parent.parent / ".env"
-
-        # Read existing .env
         env_content = ""
         if env_path.exists():
             with open(env_path, "r") as f:
                 env_content = f.read()
 
-        # Update database path
         lines = env_content.split("\n")
-        db_updated = False
 
-        for i, line in enumerate(lines):
-            if line.startswith("PARSEDMARC_DB_PATH="):
-                lines[i] = f"PARSEDMARC_DB_PATH={db_config.db_path}"
-                db_updated = True
-                break
+        if db_config.db_type == "sqlite":
+            # SQLite: set DB_PATH, remove DATABASE_URL if present
+            _update_env_lines(lines, "PARSEDMARC_DB_PATH", db_config.db_path)
+            _remove_env_line(lines, "PARSEDMARC_DATABASE_URL")
 
-        if not db_updated:
-            lines.append(f"PARSEDMARC_DB_PATH={db_config.db_path}")
+            db_path = Path(db_config.db_path)
+            db_path.parent.mkdir(parents=True, exist_ok=True)
+        else:
+            # PostgreSQL/MySQL: set DATABASE_URL
+            database_url = _build_database_url(
+                db_config.db_type, db_config.db_host or "localhost",
+                db_config.db_port or (5432 if db_config.db_type == "postgresql" else 3306),
+                db_config.db_name or "", db_config.db_user or "",
+                db_config.db_password or "",
+            )
+            _update_env_lines(lines, "PARSEDMARC_DATABASE_URL", database_url)
 
-        # Write back to .env
         with open(env_path, "w") as f:
             f.write("\n".join(lines))
 
-        # Ensure database directory exists
-        db_path = Path(db_config.db_path)
-        db_path.parent.mkdir(parents=True, exist_ok=True)
-
-        # Update setup status
         setup = get_setup_status(db)
         setup.database_configured = True
         db.commit()
 
-        logger.info("Database configuration saved successfully")
+        logger.info(f"Database configuration saved successfully (type={db_config.db_type})")
 
         return SetupStepResponse(
             success=True,
@@ -517,11 +533,20 @@ def complete_setup(
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail="Domain and email required for Let's Encrypt"
                 )
-            ssl_result = cert_service.request_letsencrypt_certificate(
-                domain=setup_data.ssl_domain,
-                email=setup_data.ssl_email,
-                staging=setup_data.ssl_staging
-            )
+            if setup_data.ssl_challenge_type == "dns-01":
+                ssl_result = cert_service.request_letsencrypt_certificate_dns(
+                    domain=setup_data.ssl_domain,
+                    email=setup_data.ssl_email,
+                    provider=setup_data.ssl_dns_provider,
+                    credentials=setup_data.ssl_dns_credentials or {},
+                    staging=setup_data.ssl_staging,
+                )
+            else:
+                ssl_result = cert_service.request_letsencrypt_certificate(
+                    domain=setup_data.ssl_domain,
+                    email=setup_data.ssl_email,
+                    staging=setup_data.ssl_staging,
+                )
             if not ssl_result.get("success"):
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
@@ -546,27 +571,41 @@ def complete_setup(
             "PARSEDMARC_PORT": str(setup_data.port),
             "PARSEDMARC_CORS_ORIGINS": setup_data.cors_origins,
             "PARSEDMARC_LOG_LEVEL": setup_data.log_level,
-            "PARSEDMARC_DB_PATH": setup_data.db_path,
             "PARSEDMARC_SSL_ENABLED": "true" if setup_data.ssl_type != "skip" else "false"
         }
 
+        # Database configuration
+        db_type = getattr(setup_data, "db_type", "sqlite") or "sqlite"
+        if db_type == "sqlite":
+            env_updates["PARSEDMARC_DB_PATH"] = setup_data.db_path
+        else:
+            database_url = _build_database_url(
+                db_type,
+                setup_data.db_host or "localhost",
+                setup_data.db_port or (5432 if db_type == "postgresql" else 3306),
+                setup_data.db_name or "",
+                setup_data.db_user or "",
+                setup_data.db_password or "",
+            )
+            env_updates["PARSEDMARC_DATABASE_URL"] = database_url
+
         for key, value in env_updates.items():
-            updated = False
-            for i, line in enumerate(lines):
-                if line.startswith(f"{key}="):
-                    lines[i] = f"{key}={value}"
-                    updated = True
-                    break
-            if not updated:
-                lines.append(f"{key}={value}")
+            _update_env_lines(lines, key, value)
+
+        # Remove conflicting DB keys
+        if db_type == "sqlite":
+            _remove_env_line(lines, "PARSEDMARC_DATABASE_URL")
+        else:
+            _remove_env_line(lines, "PARSEDMARC_DB_PATH")
 
         # Write back to .env
         with open(env_path, "w") as f:
             f.write("\n".join(lines))
 
-        # 4. Ensure database directory exists
-        db_path = Path(setup_data.db_path)
-        db_path.parent.mkdir(parents=True, exist_ok=True)
+        # 4. Ensure database directory exists (SQLite only)
+        if db_type == "sqlite":
+            db_path = Path(setup_data.db_path)
+            db_path.parent.mkdir(parents=True, exist_ok=True)
 
         # 5. Update setup status
         setup = get_setup_status(db)
@@ -671,3 +710,132 @@ def renew_certificate(db: Session = Depends(get_db)):
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to renew certificate: {str(e)}"
         )
+
+
+# ------------------------------------------------------------------ #
+#  .env helpers
+# ------------------------------------------------------------------ #
+
+def _update_env_lines(lines: list, key: str, value: str) -> None:
+    """Update or append a key=value pair in an env lines list (in-place)."""
+    for i, line in enumerate(lines):
+        if line.startswith(f"{key}="):
+            lines[i] = f"{key}={value}"
+            return
+    lines.append(f"{key}={value}")
+
+
+def _remove_env_line(lines: list, key: str) -> None:
+    """Remove a key from an env lines list (in-place)."""
+    for i, line in enumerate(lines):
+        if line.startswith(f"{key}="):
+            lines.pop(i)
+            return
+
+
+# ------------------------------------------------------------------ #
+#  Certificate Upload & Validation
+# ------------------------------------------------------------------ #
+
+def _update_env_ssl(cert_path: str, key_path: str) -> None:
+    """Write PARSEDMARC_SSL_CERTFILE, PARSEDMARC_SSL_KEYFILE, and
+    PARSEDMARC_SSL_ENABLED into .env."""
+    env_path = Path(__file__).parent.parent.parent.parent / ".env"
+    env_content = ""
+    if env_path.exists():
+        with open(env_path, "r") as f:
+            env_content = f.read()
+
+    lines = env_content.split("\n")
+    updates = {
+        "PARSEDMARC_SSL_ENABLED": "true",
+        "PARSEDMARC_SSL_CERTFILE": cert_path,
+        "PARSEDMARC_SSL_KEYFILE": key_path,
+    }
+    for key, value in updates.items():
+        found = False
+        for i, line in enumerate(lines):
+            if line.startswith(f"{key}="):
+                lines[i] = f"{key}={value}"
+                found = True
+                break
+        if not found:
+            lines.append(f"{key}={value}")
+
+    with open(env_path, "w") as f:
+        f.write("\n".join(lines))
+
+
+@router.post("/ssl/upload", response_model=SetupStepResponse)
+async def upload_ssl_certificate(
+    certificate: UploadFile = File(..., description="PEM certificate file"),
+    private_key: UploadFile = File(..., description="PEM private key file"),
+    chain: Optional[UploadFile] = File(None, description="PEM chain file (optional)"),
+    db: Session = Depends(get_db),
+):
+    """Upload and apply a custom SSL certificate.
+
+    Validates the certificate/key pair before saving.
+    """
+    try:
+        cert_data = await certificate.read()
+        key_data = await private_key.read()
+        chain_data = await chain.read() if chain else None
+
+        result = cert_service.save_uploaded_certificate(
+            cert_data, key_data, chain_data
+        )
+
+        # Update setup status
+        setup = get_setup_status(db)
+        setup.ssl_configured = True
+        setup.ssl_type = "custom"
+        db.commit()
+
+        # Update .env to point to the saved files
+        _update_env_ssl(result["certificate"], result["private_key"])
+
+        return SetupStepResponse(
+            success=True,
+            message=(
+                "Custom certificate uploaded and validated successfully. "
+                "Restart the application to apply."
+            ),
+            data=result,
+        )
+
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Certificate validation failed: {e}",
+        )
+    except Exception as e:
+        logger.error(f"Failed to upload certificate: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to upload certificate: {e}",
+        )
+
+
+@router.post("/ssl/validate", response_model=CertificateValidationResult)
+async def validate_ssl_certificate(
+    certificate: UploadFile = File(..., description="PEM certificate file"),
+    private_key: UploadFile = File(..., description="PEM private key file"),
+    chain: Optional[UploadFile] = File(None, description="PEM chain file (optional)"),
+):
+    """Validate a certificate/key pair without saving.
+
+    Use this to check files before uploading.
+    """
+    try:
+        cert_data = await certificate.read()
+        key_data = await private_key.read()
+        chain_data = await chain.read() if chain else None
+
+        result = cert_service.validate_certificate_pair(
+            cert_data, key_data, chain_data
+        )
+        return CertificateValidationResult(**result)
+
+    except ValueError as e:
+        return CertificateValidationResult(valid=False, error=str(e))

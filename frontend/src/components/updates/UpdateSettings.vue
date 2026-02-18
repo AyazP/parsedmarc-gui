@@ -51,15 +51,15 @@ function formatDate(dateStr: string | null | undefined): string {
     <div class="space-y-3">
       <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div>
-          <p class="text-xs text-gray-500 dark:text-gray-400">Current Version</p>
-          <p class="text-sm font-medium text-gray-900 dark:text-gray-100">
+          <p class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Current Version</p>
+          <p class="mt-1 text-sm font-semibold text-gray-900 dark:text-gray-100">
             {{ updateStore.status?.current_version ?? '...' }}
           </p>
         </div>
         <div>
-          <p class="text-xs text-gray-500 dark:text-gray-400">Latest Version</p>
-          <div class="flex items-center gap-2">
-            <p class="text-sm font-medium text-gray-900 dark:text-gray-100">
+          <p class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Latest Version</p>
+          <div class="mt-1 flex items-center gap-2">
+            <p class="text-sm font-semibold text-gray-900 dark:text-gray-100">
               {{ updateStore.status?.latest_version ?? '...' }}
             </p>
             <AppBadge
@@ -75,28 +75,28 @@ function formatDate(dateStr: string | null | undefined): string {
           </div>
         </div>
         <div>
-          <p class="text-xs text-gray-500 dark:text-gray-400">Last Checked</p>
-          <p class="text-sm text-gray-600 dark:text-gray-400">
+          <p class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Last Checked</p>
+          <p class="mt-1 text-sm font-semibold text-gray-900 dark:text-gray-100">
             {{ formatDate(updateStore.status?.checked_at) }}
           </p>
         </div>
       </div>
       <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div>
-          <p class="text-xs text-gray-500 dark:text-gray-400">Auto-Check</p>
-          <p class="text-sm text-gray-900 dark:text-gray-100">
+          <p class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Auto-Check</p>
+          <p class="mt-1 text-sm font-semibold text-gray-900 dark:text-gray-100">
             {{ updateStore.settings?.enabled ? 'Enabled' : 'Disabled' }}
           </p>
         </div>
         <div>
-          <p class="text-xs text-gray-500 dark:text-gray-400">Check Interval</p>
-          <p class="text-sm text-gray-900 dark:text-gray-100">
+          <p class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Check Interval</p>
+          <p class="mt-1 text-sm font-semibold text-gray-900 dark:text-gray-100">
             Every {{ updateStore.settings?.interval_hours ?? '...' }} hours
           </p>
         </div>
         <div>
-          <p class="text-xs text-gray-500 dark:text-gray-400">Deployment Type</p>
-          <p class="text-sm text-gray-900 dark:text-gray-100">
+          <p class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Deployment Type</p>
+          <p class="mt-1 text-sm font-semibold text-gray-900 dark:text-gray-100">
             {{ updateStore.status?.is_docker ? 'Docker' : 'Standalone (Git)' }}
           </p>
         </div>

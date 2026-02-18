@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useSetupStore } from '@/stores/setup'
 import AppButton from '@/components/ui/AppButton.vue'
@@ -12,6 +12,7 @@ import ReviewStep from './steps/ReviewStep.vue'
 
 const setupStore = useSetupStore()
 const router = useRouter()
+const validationError = ref('')
 
 const steps = [
   { num: 1, label: 'Encryption', component: WelcomeStep },
@@ -24,6 +25,15 @@ const steps = [
 
 const currentStepComponent = computed(() => steps[setupStore.currentStep - 1]?.component)
 
+function handleNext() {
+  const ok = setupStore.nextStep()
+  if (!ok) {
+    validationError.value = setupStore.currentStepError
+  } else {
+    validationError.value = ''
+  }
+}
+
 function goToDashboard() {
   router.push('/')
 }
@@ -32,10 +42,10 @@ function goToDashboard() {
 <template>
   <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
     <!-- Step progress -->
-    <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900">
-      <div class="flex items-center justify-between">
-        <div v-for="step in steps" :key="step.num" class="flex items-center" :class="step.num < steps.length ? 'flex-1' : ''">
-          <div class="flex items-center gap-2">
+    <div class="px-4 py-4 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900">
+      <div class="flex items-center">
+        <template v-for="step in steps" :key="step.num">
+          <div class="flex items-center gap-2 shrink-0">
             <div
               class="w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium transition-colors"
               :class="{
@@ -49,10 +59,10 @@ function goToDashboard() {
               </svg>
               <span v-else>{{ step.num }}</span>
             </div>
-            <span class="text-sm font-medium hidden sm:inline" :class="setupStore.currentStep === step.num ? 'text-primary-700 dark:text-primary-400' : 'text-gray-500 dark:text-gray-400'">{{ step.label }}</span>
+            <span class="text-sm font-medium hidden sm:inline whitespace-nowrap" :class="setupStore.currentStep === step.num ? 'text-primary-700 dark:text-primary-400' : 'text-gray-500 dark:text-gray-400'">{{ step.label }}</span>
           </div>
-          <div v-if="step.num < steps.length" class="flex-1 mx-4 h-px bg-gray-300 dark:bg-gray-600" />
-        </div>
+          <div v-if="step.num < steps.length" class="flex-1 mx-3 h-px bg-gray-300 dark:bg-gray-600 min-w-4" />
+        </template>
       </div>
     </div>
 
@@ -62,19 +72,22 @@ function goToDashboard() {
     </div>
 
     <!-- Navigation -->
-    <div class="px-6 py-4 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 flex justify-between">
-      <AppButton v-if="setupStore.currentStep > 1 && !setupStore.completionResult" variant="secondary" @click="setupStore.prevStep()">
-        Previous
-      </AppButton>
-      <div v-else />
+    <div class="px-6 py-4 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 space-y-3">
+      <p v-if="validationError" class="text-sm text-red-600 dark:text-red-400">{{ validationError }}</p>
+      <div class="flex justify-between">
+        <AppButton v-if="setupStore.currentStep > 1 && !setupStore.completionResult" variant="secondary" @click="setupStore.prevStep(); validationError = ''">
+          Previous
+        </AppButton>
+        <div v-else />
 
-      <AppButton v-if="setupStore.currentStep < setupStore.totalSteps && !setupStore.completionResult" @click="setupStore.nextStep()">
-        Next
-      </AppButton>
+        <AppButton v-if="setupStore.currentStep < setupStore.totalSteps && !setupStore.completionResult" @click="handleNext">
+          Next
+        </AppButton>
 
-      <AppButton v-if="setupStore.completionResult" @click="goToDashboard">
-        Go to Dashboard
-      </AppButton>
+        <AppButton v-if="setupStore.completionResult" @click="goToDashboard">
+          Go to Dashboard
+        </AppButton>
+      </div>
     </div>
   </div>
 </template>

@@ -4,16 +4,19 @@ A modern web-based interface for [parsedmarc](https://github.com/domainaware/par
 
 ## Features
 
-- **Setup Wizard** — Guided first-run configuration (encryption key, admin credentials, SSL, server, database)
+- **Setup Wizard** — Guided 6-step first-run configuration (encryption key, admin credentials, SSL, server, database, review)
 - **Multiple Mailbox Support** — IMAP, Microsoft Graph (Office 365), Gmail API, Maildir
 - **Multiple Output Destinations** — Elasticsearch, OpenSearch, Splunk, Kafka, S3, Syslog, GELF, Webhooks
 - **Automated Monitoring** — Background mailbox watching with APScheduler
 - **File Upload Parsing** — Drag-and-drop individual DMARC report files (XML, GZ, ZIP, EML, MSG)
 - **Report Browsing** — Filtered and paginated report viewer with full JSON detail
-- **Connection Testing** — Test mailbox connections before saving
+- **Connection Testing** — Test mailbox and output connections before saving
 - **Secure Credential Storage** — All passwords and secrets encrypted with Fernet (unique key per installation)
-- **SSL Certificate Management** — Self-signed, Let's Encrypt, or custom certificates with renewal support
+- **SSL Certificate Management** — Self-signed, Let's Encrypt (HTTP-01 and DNS-01 challenges), or custom certificate upload with validation
 - **Dashboard** — Stats overview, system health, recent jobs, quick actions
+- **Database Flexibility** — SQLite (default), PostgreSQL, or MySQL with built-in migration tool
+- **Update Checker** — Automatic GitHub release checks with configurable intervals
+- **Dark Mode** — System preference auto-detection with manual toggle
 
 ## Architecture
 
@@ -32,24 +35,25 @@ A modern web-based interface for [parsedmarc](https://github.com/domainaware/par
 └──────────────────┬──────────────────────┘
                    │
 ┌──────────────────▼──────────────────────┐
-│       SQLite (encrypted credentials)     │
+│   SQLite / PostgreSQL / MySQL            │
+│   (encrypted credentials at rest)        │
 └─────────────────────────────────────────┘
 ```
 
 ### Backend (Python / FastAPI)
 
 - **Framework**: FastAPI with async lifespan
-- **Database**: SQLite with SQLAlchemy ORM (7 models)
-- **Background Jobs**: APScheduler for mailbox monitoring
-- **Security**: Fernet symmetric encryption for credentials, self-signed/LE/custom SSL
+- **Database**: SQLAlchemy ORM (7 models) — SQLite, PostgreSQL, or MySQL
+- **Background Jobs**: APScheduler for mailbox monitoring and update checks
+- **Security**: Fernet symmetric encryption for credentials, JWT authentication, self-signed/LE/custom SSL
 - **Parsing**: Wraps parsedmarc library for mailbox fetching and file parsing
 
 ### Frontend (Vue.js 3)
 
 - **Framework**: Vue 3 with Composition API (`<script setup>`)
 - **Language**: TypeScript
-- **Styling**: Tailwind CSS (no component library)
-- **State**: Pinia stores
+- **Styling**: Tailwind CSS with dark mode support (class-based toggle)
+- **State**: Pinia stores (app, setup, mailboxes, outputs, parsing, updates)
 - **Routing**: Vue Router with setup-guard (redirects to wizard if not configured)
 - **Build**: Vite (output to `frontend/dist/`, served by backend)
 
@@ -65,11 +69,19 @@ cp .env.example .env
 # 2. Run
 docker compose up -d
 
-# 3. (Optional) Include Elasticsearch for report storage
+# 3. (Optional) Include Elasticsearch or OpenSearch for report storage
 docker compose --profile elasticsearch up -d
+# or
+docker compose --profile opensearch up -d
 ```
 
 Open http://localhost:8000 — the setup wizard will guide you through initial configuration.
+
+The Docker image is also available from GitHub Container Registry:
+
+```bash
+docker pull ghcr.io/ayazp/parsedmarc-gui:latest
+```
 
 ### Option B: Manual Setup
 
@@ -118,17 +130,24 @@ parsedmarc-gui/
 ├── backend/
 │   ├── app/
 │   │   ├── api/                # REST API endpoints
-│   │   │   ├── setup.py        # Setup wizard (10 endpoints)
+│   │   │   ├── setup.py        # Setup wizard + SSL upload/validate
 │   │   │   ├── mailbox_configs.py  # Mailbox CRUD + test connection
 │   │   │   ├── output_configs.py   # Output CRUD
-│   │   │   └── parsing.py      # Parse jobs, reports, file upload
+│   │   │   ├── parsing.py      # Parse jobs, reports, file upload
+│   │   │   ├── dashboard.py    # Aggregated stats, activity feed
+│   │   │   ├── monitoring.py   # Background monitoring control
+│   │   │   ├── test_connections.py  # Output destination testing
+│   │   │   ├── updates.py      # Update checker status/settings
+│   │   │   └── settings.py     # Database info, migration, purge
 │   │   ├── models/             # SQLAlchemy models (7)
 │   │   ├── services/           # Business logic
 │   │   │   ├── encryption_service.py
 │   │   │   ├── certificate_service.py
 │   │   │   ├── mailbox_service.py
 │   │   │   ├── parsing_service.py
-│   │   │   └── monitoring_service.py
+│   │   │   ├── monitoring_service.py
+│   │   │   ├── update_service.py
+│   │   │   └── database_migration_service.py
 │   │   ├── schemas/            # Pydantic request/response schemas
 │   │   ├── db/session.py       # Database engine & session
 │   │   ├── config.py           # Settings (env vars / Pydantic)
@@ -138,18 +157,20 @@ parsedmarc-gui/
 │   ├── src/
 │   │   ├── api/                # API client (fetch-based)
 │   │   ├── types/              # TypeScript interfaces
-│   │   ├── stores/             # Pinia stores (app, setup, mailboxes, outputs, parsing)
+│   │   ├── stores/             # Pinia stores (app, setup, mailboxes, outputs, parsing, updates)
 │   │   ├── composables/        # useApi, useToast, usePagination, useConfirmDialog
 │   │   ├── router/             # Vue Router with setup guard
 │   │   ├── layouts/            # AppLayout, BlankLayout
 │   │   ├── components/
-│   │   │   ├── ui/             # 12 base components (Button, Input, Modal, etc.)
+│   │   │   ├── ui/             # Base components (Button, Input, Modal, Badge, etc.)
 │   │   │   ├── layout/         # Sidebar, Topbar
 │   │   │   ├── data/           # DataTable, Pagination, FilterBar
 │   │   │   ├── forms/          # FormSection, FormField, PasswordInput, FileDropZone
 │   │   │   ├── mailbox/        # 4 type-specific settings forms
-│   │   │   ├── output/         # 8 type-specific settings forms
-│   │   │   └── report/         # ReportJsonViewer
+│   │   │   ├── output/         # 7 type-specific settings forms
+│   │   │   ├── report/         # ReportJsonViewer
+│   │   │   ├── settings/       # DatabaseSettings
+│   │   │   └── updates/        # UpdateModal, UpdateBadge, UpdateSettings
 │   │   └── views/
 │   │       ├── setup/          # SetupWizard + 6 step components
 │   │       ├── DashboardView.vue
@@ -158,11 +179,13 @@ parsedmarc-gui/
 │   │       ├── reports/        # List + Detail (JSON viewer)
 │   │       ├── jobs/           # Job list with status filter
 │   │       ├── upload/         # File upload with drag-and-drop
-│   │       └── settings/       # System info + SSL certificate
+│   │       └── settings/       # System info, SSL, database, update checker
 │   ├── package.json
 │   ├── vite.config.ts
 │   ├── tailwind.config.js
 │   └── tsconfig.json
+├── docker-compose.yml          # GUI + optional Elasticsearch/OpenSearch
+├── Dockerfile.gui              # Multi-stage build (Node + Python)
 ├── .env.example
 ├── .gitignore
 └── README.md
@@ -180,12 +203,32 @@ See `.env.example` for all options:
 | `PARSEDMARC_GUI_USERNAME` | `admin` | Admin username |
 | `PARSEDMARC_GUI_PASSWORD` | `changeme` | Admin password |
 | `PARSEDMARC_DB_PATH` | `./data/parsedmarc.db` | SQLite database path |
+| `PARSEDMARC_DATABASE_URL` | *(none)* | Full SQLAlchemy URL for PostgreSQL/MySQL (overrides DB_PATH) |
 | `PARSEDMARC_HOST` | `0.0.0.0` | Server bind address |
 | `PARSEDMARC_PORT` | `8000` | Server port |
 | `PARSEDMARC_CORS_ORIGINS` | `localhost:3000,8000` | Allowed CORS origins |
 | `PARSEDMARC_LOG_LEVEL` | `INFO` | Logging level |
+| `PARSEDMARC_SECRET_KEY` | *(auto-generated)* | JWT secret key |
+| `PARSEDMARC_TOKEN_EXPIRE` | `1440` | JWT token expiration (minutes) |
+| `PARSEDMARC_DATA_DIR` | `./data` | Data directory for uploads, certs, tokens |
+| `PARSEDMARC_SSL_ENABLED` | `false` | Enable HTTPS |
+| `PARSEDMARC_SSL_CERTFILE` | *(none)* | Path to SSL certificate file |
+| `PARSEDMARC_SSL_KEYFILE` | *(none)* | Path to SSL private key file |
+| `PARSEDMARC_UPDATE_CHECK_ENABLED` | `true` | Enable GitHub release update checks |
+| `PARSEDMARC_UPDATE_CHECK_INTERVAL` | `24` | Update check interval (hours, 1–168) |
+| `PARSEDMARC_DOCKER` | `false` | Set to true when running in Docker |
 
 > **Note:** The setup wizard configures these on first run. Environment variables override wizard settings.
+
+### Database Support
+
+| Engine | Default | Connection |
+|--------|---------|------------|
+| **SQLite** | `./data/parsedmarc.db` | Automatic, zero-config |
+| **PostgreSQL** | *(none)* | Set `PARSEDMARC_DATABASE_URL=postgresql+psycopg2://user:pass@host/db` |
+| **MySQL** | *(none)* | Set `PARSEDMARC_DATABASE_URL=mysql+pymysql://user:pass@host/db` |
+
+Database can be selected during the setup wizard (Step 5) or by setting the environment variable. The built-in migration tool in Settings allows migrating data between database engines with connection testing.
 
 ### Mailbox Types
 
@@ -209,14 +252,23 @@ See `.env.example` for all options:
 | **GELF** | UDP/TCP | Server, port (Graylog) |
 | **Webhook** | HTTP POST | URL, custom headers, timeout |
 
+### SSL Certificate Options
+
+| Method | Description |
+|--------|-------------|
+| **Self-Signed** | Auto-generated with configurable CN, organization, and validity |
+| **Let's Encrypt (HTTP-01)** | Standard ACME challenge via certbot (requires port 80) |
+| **Let's Encrypt (DNS-01)** | DNS-based challenge via Cloudflare, Route53, DigitalOcean, or Google Cloud DNS |
+| **Custom Upload** | Upload PEM certificate and key files with built-in validation |
+
 ## API Endpoints
 
 Once running, full API docs are at http://localhost:8000/docs (Swagger UI).
 
 | Prefix | Description |
 |--------|-------------|
-| `GET /api/health` | Health check |
-| `GET /api/system/info` | System information |
+| `GET /api/health` | Health check (version, monitoring status) |
+| `GET /api/system/info` | System information (version, DB type, data dir) |
 | `/api/setup/*` | Setup wizard (status, encryption, SSL, admin, server, DB, complete) |
 | `/api/configs/mailboxes/*` | Mailbox config CRUD + test connection |
 | `/api/configs/outputs/*` | Output config CRUD |
@@ -224,12 +276,15 @@ Once running, full API docs are at http://localhost:8000/docs (Swagger UI).
 | `/api/dashboard/*` | Aggregated stats, activity feed |
 | `/api/monitoring/*` | Start/stop monitoring jobs, status |
 | `/api/test/*` | Output destination connection testing |
+| `/api/updates/*` | Update checker status, force check, settings |
+| `/api/settings/*` | Database info, test connection, migrate, purge |
 
 ## Security
 
 - **Credential Encryption**: All passwords, API keys, and secrets are encrypted at rest using Fernet symmetric encryption. Each installation generates a unique encryption key during setup.
-- **SSL/TLS**: Supports self-signed certificates (auto-generated), Let's Encrypt, or custom certificates.
-- **Database**: SQLite with encrypted sensitive fields. Database path is configurable.
+- **Authentication**: JWT-based token authentication with configurable expiration.
+- **SSL/TLS**: Supports self-signed certificates (auto-generated), Let's Encrypt (HTTP-01 and DNS-01 challenges), or custom certificate upload with validation.
+- **Database**: Encrypted sensitive fields across SQLite, PostgreSQL, and MySQL.
 
 ## License
 

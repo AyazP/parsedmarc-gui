@@ -154,30 +154,30 @@ function toggleRecord(index: number) {
         </template>
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           <div>
-            <p class="text-xs text-gray-500 dark:text-gray-400">Type</p>
-            <AppBadge :text="report.report_type" :variant="typeVariant[report.report_type] ?? 'neutral'" />
+            <p class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Type</p>
+            <div class="mt-1"><AppBadge :text="report.report_type" :variant="typeVariant[report.report_type] ?? 'neutral'" /></div>
           </div>
           <div>
-            <p class="text-xs text-gray-500 dark:text-gray-400">Organization</p>
-            <p class="text-sm font-medium text-gray-900 dark:text-gray-100">{{ report.org_name ?? '-' }}</p>
+            <p class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Organization</p>
+            <p class="mt-1 text-sm font-medium text-gray-900 dark:text-gray-100">{{ report.org_name ?? '-' }}</p>
           </div>
           <div>
-            <p class="text-xs text-gray-500 dark:text-gray-400">Domain</p>
-            <p class="text-sm font-medium text-gray-900 dark:text-gray-100">{{ report.domain ?? '-' }}</p>
+            <p class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Domain</p>
+            <p class="mt-1 text-sm font-medium text-gray-900 dark:text-gray-100">{{ report.domain ?? '-' }}</p>
           </div>
           <div>
-            <p class="text-xs text-gray-500 dark:text-gray-400">Report ID</p>
-            <p class="text-sm font-mono text-gray-600 dark:text-gray-400 break-all">{{ report.report_id ?? '-' }}</p>
+            <p class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Report ID</p>
+            <p class="mt-1 text-sm font-mono text-gray-600 dark:text-gray-400 break-all">{{ report.report_id ?? '-' }}</p>
           </div>
           <div>
-            <p class="text-xs text-gray-500 dark:text-gray-400">Date Range</p>
-            <p class="text-sm text-gray-900 dark:text-gray-100">
+            <p class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Date Range</p>
+            <p class="mt-1 text-sm text-gray-900 dark:text-gray-100">
               {{ formatDate(report.date_begin) }} — {{ formatDate(report.date_end) }}
             </p>
           </div>
           <div>
-            <p class="text-xs text-gray-500 dark:text-gray-400">Imported</p>
-            <p class="text-sm text-gray-900 dark:text-gray-100">{{ formatDate(report.created_at) }}</p>
+            <p class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Imported</p>
+            <p class="mt-1 text-sm text-gray-900 dark:text-gray-100">{{ formatDate(report.created_at) }}</p>
           </div>
         </div>
       </AppCard>
@@ -215,28 +215,28 @@ function toggleRecord(index: number) {
             <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">Published Policy</h3>
             <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
               <div>
-                <p class="text-xs text-gray-500 dark:text-gray-400">Domain Policy</p>
-                <AppBadge :text="policyLabel(policyPublished.p)" :variant="policyVariant(policyPublished.p)" />
+                <p class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Domain Policy</p>
+                <div class="mt-1"><AppBadge :text="policyLabel(policyPublished.p)" :variant="policyVariant(policyPublished.p)" /></div>
               </div>
               <div>
-                <p class="text-xs text-gray-500 dark:text-gray-400">Subdomain Policy</p>
-                <AppBadge :text="policyLabel(policyPublished.sp)" :variant="policyVariant(policyPublished.sp)" />
+                <p class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Subdomain Policy</p>
+                <div class="mt-1"><AppBadge :text="policyLabel(policyPublished.sp)" :variant="policyVariant(policyPublished.sp)" /></div>
               </div>
               <div>
-                <p class="text-xs text-gray-500 dark:text-gray-400">DKIM Alignment</p>
-                <p class="text-sm font-medium text-gray-900 dark:text-gray-100">{{ alignmentLabel(policyPublished.adkim) }}</p>
+                <p class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">DKIM Alignment</p>
+                <p class="mt-1 text-sm font-medium text-gray-900 dark:text-gray-100">{{ alignmentLabel(policyPublished.adkim) }}</p>
               </div>
               <div>
-                <p class="text-xs text-gray-500 dark:text-gray-400">SPF Alignment</p>
-                <p class="text-sm font-medium text-gray-900 dark:text-gray-100">{{ alignmentLabel(policyPublished.aspf) }}</p>
+                <p class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">SPF Alignment</p>
+                <p class="mt-1 text-sm font-medium text-gray-900 dark:text-gray-100">{{ alignmentLabel(policyPublished.aspf) }}</p>
               </div>
               <div>
-                <p class="text-xs text-gray-500 dark:text-gray-400">Percentage</p>
-                <p class="text-sm font-medium text-gray-900 dark:text-gray-100">{{ policyPublished.pct ?? '-' }}%</p>
+                <p class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Percentage</p>
+                <p class="mt-1 text-sm font-medium text-gray-900 dark:text-gray-100">{{ policyPublished.pct ?? '-' }}%</p>
               </div>
               <div>
-                <p class="text-xs text-gray-500 dark:text-gray-400">Failure Reporting</p>
-                <p class="text-sm font-medium text-gray-900 dark:text-gray-100">{{ policyPublished.fo ?? '-' }}</p>
+                <p class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Failure Reporting</p>
+                <p class="mt-1 text-sm font-medium text-gray-900 dark:text-gray-100">{{ policyPublished.fo ?? '-' }}</p>
               </div>
             </div>
           </div>
@@ -329,16 +329,16 @@ function toggleRecord(index: number) {
                 <h4 class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">Identifiers</h4>
                 <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <div>
-                    <p class="text-xs text-gray-500 dark:text-gray-400">Header From</p>
-                    <p class="text-sm font-mono text-gray-900 dark:text-gray-100">{{ record.identifiers.header_from ?? '-' }}</p>
+                    <p class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Header From</p>
+                    <p class="mt-1 text-sm font-mono text-gray-900 dark:text-gray-100">{{ record.identifiers.header_from ?? '-' }}</p>
                   </div>
                   <div>
-                    <p class="text-xs text-gray-500 dark:text-gray-400">Envelope From</p>
-                    <p class="text-sm font-mono text-gray-900 dark:text-gray-100">{{ record.identifiers.envelope_from ?? '-' }}</p>
+                    <p class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Envelope From</p>
+                    <p class="mt-1 text-sm font-mono text-gray-900 dark:text-gray-100">{{ record.identifiers.envelope_from ?? '-' }}</p>
                   </div>
                   <div>
-                    <p class="text-xs text-gray-500 dark:text-gray-400">Envelope To</p>
-                    <p class="text-sm font-mono text-gray-900 dark:text-gray-100">{{ record.identifiers.envelope_to ?? '-' }}</p>
+                    <p class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Envelope To</p>
+                    <p class="mt-1 text-sm font-mono text-gray-900 dark:text-gray-100">{{ record.identifiers.envelope_to ?? '-' }}</p>
                   </div>
                 </div>
               </div>

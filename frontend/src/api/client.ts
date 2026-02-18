@@ -70,6 +70,27 @@ class ApiClient {
 
     return response.json()
   }
+
+  async uploadMultiple<T>(endpoint: string, files: Record<string, File | null>): Promise<T> {
+    const formData = new FormData()
+    for (const [field, file] of Object.entries(files)) {
+      if (file) {
+        formData.append(field, file)
+      }
+    }
+
+    const response = await fetch(endpoint, {
+      method: 'POST',
+      body: formData,
+    })
+
+    if (!response.ok) {
+      const errorBody = await response.json().catch(() => ({ detail: response.statusText }))
+      throw new ApiError(response.status, errorBody.detail || 'Upload failed')
+    }
+
+    return response.json()
+  }
 }
 
 export const apiClient = new ApiClient()

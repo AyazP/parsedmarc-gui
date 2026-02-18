@@ -15,12 +15,59 @@ export const useSetupStore = defineStore('setup', () => {
     port: 8000,
     cors_origins: 'http://localhost:3000,http://localhost:8000',
     log_level: 'INFO',
+    db_type: 'sqlite',
     db_path: './data/parsedmarc.db',
     ssl_type: 'self-signed',
   })
 
   const needsSetup = computed(() => status.value === null || !status.value.is_complete)
   const totalSteps = 6
+
+  // Step validation — returns error message or empty string
+  function getStepError(step: number): string {
+    const d = wizardData.value
+    switch (step) {
+      case 1: // Encryption — always valid (auto-generates if not set)
+        return ''
+      case 2: { // Admin credentials
+        if (!d.admin_username || d.admin_username.length < 3)
+          return 'Username must be at least 3 characters.'
+        if (!d.admin_password || d.admin_password.length < 8)
+          return 'Password must be at least 8 characters.'
+        return ''
+      }
+      case 3: { // SSL
+        if (d.ssl_type === 'letsencrypt') {
+          if (!d.ssl_domain) return 'Domain is required for Let\'s Encrypt.'
+          if (!d.ssl_email) return 'Email is required for Let\'s Encrypt.'
+        }
+        return ''
+      }
+      case 4: { // Server
+        if (!d.host) return 'Host is required.'
+        if (!d.port || d.port < 1 || d.port > 65535) return 'Port must be between 1 and 65535.'
+        return ''
+      }
+      case 5: { // Database
+        const dbType = d.db_type || 'sqlite'
+        if (dbType === 'sqlite') {
+          if (!d.db_path) return 'Database path is required.'
+        } else {
+          if (!d.db_host) return 'Database host is required.'
+          if (!d.db_name) return 'Database name is required.'
+          if (!d.db_user) return 'Database username is required.'
+        }
+        return ''
+      }
+      case 6: // Review — always valid
+        return ''
+      default:
+        return ''
+    }
+  }
+
+  const isCurrentStepValid = computed(() => getStepError(currentStep.value) === '')
+  const currentStepError = computed(() => getStepError(currentStep.value))
 
   async function fetchStatus() {
     try {
@@ -30,8 +77,11 @@ export const useSetupStore = defineStore('setup', () => {
     }
   }
 
-  function nextStep() {
+  function nextStep(): boolean {
+    const err = getStepError(currentStep.value)
+    if (err) return false
     if (currentStep.value < totalSteps) currentStep.value++
+    return true
   }
 
   function prevStep() {
@@ -74,10 +124,13 @@ export const useSetupStore = defineStore('setup', () => {
     needsSetup,
     totalSteps,
     completionResult,
+    isCurrentStepValid,
+    currentStepError,
     fetchStatus,
     nextStep,
     prevStep,
     goToStep,
+    getStepError,
     updateWizardData,
     completeSetup,
   }

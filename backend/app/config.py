@@ -18,6 +18,7 @@ class Settings(BaseSettings):
 
     # Database
     db_path: str = Field(default="./data/parsedmarc.db", validation_alias="PARSEDMARC_DB_PATH")
+    database_url: Optional[str] = Field(default=None, validation_alias="PARSEDMARC_DATABASE_URL")
 
     # Security
     encryption_key: str = Field(..., validation_alias="PARSEDMARC_ENCRYPTION_KEY")
@@ -56,6 +57,27 @@ class Settings(BaseSettings):
     ssl_enabled: bool = Field(default=False, validation_alias="PARSEDMARC_SSL_ENABLED")
     ssl_certfile: Optional[str] = Field(default=None, validation_alias="PARSEDMARC_SSL_CERTFILE")
     ssl_keyfile: Optional[str] = Field(default=None, validation_alias="PARSEDMARC_SSL_KEYFILE")
+
+    @property
+    def effective_database_url(self) -> str:
+        """Get the effective database URL.
+
+        Returns PARSEDMARC_DATABASE_URL if set, otherwise builds a SQLite URL
+        from PARSEDMARC_DB_PATH for backward compatibility.
+        """
+        if self.database_url:
+            return self.database_url
+        return f"sqlite:///{self.db_path}"
+
+    @property
+    def database_type(self) -> str:
+        """Get the current database backend type."""
+        url = self.effective_database_url
+        if url.startswith("postgresql"):
+            return "postgresql"
+        if url.startswith("mysql"):
+            return "mysql"
+        return "sqlite"
 
     @property
     def cors_origins(self) -> List[str]:

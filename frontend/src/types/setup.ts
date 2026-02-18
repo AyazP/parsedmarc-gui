@@ -29,6 +29,8 @@ export interface AdminCredentialsRequest {
 }
 
 export type SSLType = 'self-signed' | 'letsencrypt' | 'custom' | 'skip'
+export type ChallengeType = 'http-01' | 'dns-01'
+export type DNSProvider = 'cloudflare' | 'route53' | 'digitalocean' | 'google'
 
 export interface SSLSelfSignedRequest {
   type: 'self-signed'
@@ -42,7 +44,10 @@ export interface SSLLetsEncryptRequest {
   domain: string
   email: string
   staging: boolean
+  challenge_type: ChallengeType
   webroot_path?: string
+  dns_provider?: DNSProvider
+  dns_credentials?: Record<string, string>
 }
 
 export interface SSLCustomRequest {
@@ -61,8 +66,16 @@ export interface ServerSetupRequest {
   log_level: 'DEBUG' | 'INFO' | 'WARNING' | 'ERROR' | 'CRITICAL'
 }
 
+export type DatabaseType = 'sqlite' | 'postgresql' | 'mysql'
+
 export interface DatabaseSetupRequest {
+  db_type: DatabaseType
   db_path: string
+  db_host?: string
+  db_port?: number
+  db_name?: string
+  db_user?: string
+  db_password?: string
 }
 
 export interface CompleteSetupRequest {
@@ -76,11 +89,20 @@ export interface CompleteSetupRequest {
   ssl_common_name?: string
   ssl_certificate_path?: string
   ssl_private_key_path?: string
+  ssl_challenge_type?: ChallengeType
+  ssl_dns_provider?: DNSProvider
+  ssl_dns_credentials?: Record<string, string>
   host: string
   port: number
   cors_origins: string
   log_level: string
+  db_type: DatabaseType
   db_path: string
+  db_host?: string
+  db_port?: number
+  db_name?: string
+  db_user?: string
+  db_password?: string
 }
 
 export interface CertificateInfo {
@@ -94,4 +116,15 @@ export interface CertificateInfo {
   days_until_expiry?: number
   is_self_signed?: boolean
   error?: string
+}
+
+export interface CertificateValidationResult {
+  valid: boolean
+  error?: string
+  warning?: string
+  subject?: string
+  issuer?: string
+  expires?: string
+  days_until_expiry?: number
+  is_self_signed?: boolean
 }

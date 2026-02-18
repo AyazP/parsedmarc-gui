@@ -1,7 +1,7 @@
 """Setup wizard schemas."""
 from typing import Optional, Dict, Any, Literal
 from datetime import datetime
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 
 class EncryptionKeySetup(BaseModel):
@@ -61,7 +61,34 @@ class SSLSetupLetsEncrypt(BaseModel):
     domain: str = Field(..., description="Domain name for the certificate")
     email: str = Field(..., description="Contact email for Let's Encrypt")
     staging: bool = Field(default=False, description="Use staging server for testing")
-    webroot_path: Optional[str] = Field(None, description="Webroot path for authentication")
+
+    # Challenge type
+    challenge_type: Literal["http-01", "dns-01"] = Field(
+        default="http-01", description="ACME challenge type"
+    )
+    webroot_path: Optional[str] = Field(None, description="Webroot path for HTTP-01")
+
+    # DNS-01 fields
+    dns_provider: Optional[Literal["cloudflare", "route53", "digitalocean", "google"]] = Field(
+        None, description="DNS provider for DNS-01 challenge"
+    )
+    dns_credentials: Optional[Dict[str, str]] = Field(
+        None, description="DNS provider API credentials"
+    )
+
+    @field_validator("dns_provider")
+    @classmethod
+    def validate_dns_provider(cls, v, info):
+        if info.data.get("challenge_type") == "dns-01" and not v:
+            raise ValueError("DNS provider is required for DNS-01 challenge")
+        return v
+
+    @field_validator("dns_credentials")
+    @classmethod
+    def validate_dns_credentials(cls, v, info):
+        if info.data.get("challenge_type") == "dns-01" and not v:
+            raise ValueError("DNS credentials are required for DNS-01 challenge")
+        return v
 
 
 class SSLSetupCustom(BaseModel):
@@ -88,7 +115,29 @@ class ServerSetup(BaseModel):
 
 class DatabaseSetup(BaseModel):
     """Schema for database configuration setup."""
+    db_type: Literal["sqlite", "postgresql", "mysql"] = Field(
+        default="sqlite", description="Database engine type"
+    )
     db_path: str = Field(default="./data/parsedmarc.db", description="SQLite database file path")
+    db_host: Optional[str] = Field(None, description="Database host (PostgreSQL/MySQL)")
+    db_port: Optional[int] = Field(None, ge=1, le=65535, description="Database port")
+    db_name: Optional[str] = Field(None, description="Database name (PostgreSQL/MySQL)")
+    db_user: Optional[str] = Field(None, description="Database username")
+    db_password: Optional[str] = Field(None, description="Database password")
+
+    @model_validator(mode="after")
+    def validate_connection_fields(self):
+        if self.db_type != "sqlite":
+            errors = []
+            if not self.db_host:
+                errors.append("Host is required for PostgreSQL/MySQL")
+            if not self.db_name:
+                errors.append("Database name is required for PostgreSQL/MySQL")
+            if not self.db_user:
+                errors.append("Username is required for PostgreSQL/MySQL")
+            if errors:
+                raise ValueError("; ".join(errors))
+        return self
 
 
 class CompleteSetup(BaseModel):
@@ -109,6 +158,13 @@ class CompleteSetup(BaseModel):
     ssl_certificate_path: Optional[str] = Field(None, description="Path to custom certificate")
     ssl_private_key_path: Optional[str] = Field(None, description="Path to custom private key")
 
+    # DNS-01 challenge fields
+    ssl_challenge_type: Literal["http-01", "dns-01"] = Field(
+        default="http-01", description="ACME challenge type"
+    )
+    ssl_dns_provider: Optional[str] = Field(None, description="DNS provider for DNS-01")
+    ssl_dns_credentials: Optional[Dict[str, str]] = Field(None, description="DNS provider credentials")
+
     # Server configuration
     host: str = Field(default="0.0.0.0")
     port: int = Field(default=8000, ge=1, le=65535)
@@ -116,7 +172,15 @@ class CompleteSetup(BaseModel):
     log_level: str = Field(default="INFO")
 
     # Database configuration
+    db_type: Literal["sqlite", "postgresql", "mysql"] = Field(
+        default="sqlite", description="Database engine type"
+    )
     db_path: str = Field(default="./data/parsedmarc.db")
+    db_host: Optional[str] = Field(None, description="Database host")
+    db_port: Optional[int] = Field(None, ge=1, le=65535, description="Database port")
+    db_name: Optional[str] = Field(None, description="Database name")
+    db_user: Optional[str] = Field(None, description="Database username")
+    db_password: Optional[str] = Field(None, description="Database password")
 
     @field_validator("ssl_domain")
     @classmethod
@@ -165,6 +229,18 @@ class CertificateInfo(BaseModel):
     days_until_expiry: Optional[int] = None
     is_self_signed: Optional[bool] = None
     error: Optional[str] = None
+
+
+class CertificateValidationResult(BaseModel):
+    """Schema for certificate validation results."""
+    valid: bool
+    error: Optional[str] = None
+    warning: Optional[str] = None
+    subject: Optional[str] = None
+    issuer: Optional[str] = None
+    expires: Optional[str] = None
+    days_until_expiry: Optional[int] = None
+    is_self_signed: Optional[bool] = None
 
 
 class SetupStepResponse(BaseModel):

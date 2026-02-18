@@ -102,7 +102,7 @@ def _register_router(module_name: str):
 
 for _router_name in [
     "setup", "mailbox_configs", "output_configs", "testing",
-    "parsing", "monitoring", "dashboard", "updates",
+    "parsing", "monitoring", "dashboard", "updates", "settings",
 ]:
     _register_router(_router_name)
 
@@ -123,6 +123,7 @@ async def system_info():
     return {
         "version": APP_VERSION,
         "database": str(settings.db_path),
+        "database_type": settings.database_type,
         "data_directory": str(settings.data_dir),
     }
 
@@ -172,11 +173,16 @@ def _resolve_ssl_files():
     # Auto-detect from data/certificates/
     cert_dir = settings.data_dir / "certificates"
 
-    # Prefer Let's Encrypt over self-signed
+    # Priority: Let's Encrypt > Custom uploaded > Self-signed
     le_cert = cert_dir / "letsencrypt-fullchain.crt"
     le_key = cert_dir / "letsencrypt.key"
     if le_cert.exists() and le_key.exists():
         return str(le_cert), str(le_key)
+
+    custom_cert = cert_dir / "custom.crt"
+    custom_key = cert_dir / "custom.key"
+    if custom_cert.exists() and custom_key.exists():
+        return str(custom_cert), str(custom_key)
 
     ss_cert = cert_dir / "selfsigned.crt"
     ss_key = cert_dir / "selfsigned.key"

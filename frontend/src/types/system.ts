@@ -7,5 +7,6 @@ export interface HealthStatus {
 export interface SystemInfo {
   version: string
   database: string
+  database_type: string
   data_directory: string
 }

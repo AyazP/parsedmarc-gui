@@ -10,6 +10,7 @@ import type {
   DatabaseSetupRequest,
   CompleteSetupRequest,
   CertificateInfo,
+  CertificateValidationResult,
 } from '@/types/setup'
 
 export const setupApi = {
@@ -40,4 +41,18 @@ export const setupApi = {
 
   renewCertificate: () =>
     apiClient.post<SetupStepResponse>('/api/setup/certificate/renew'),
+
+  uploadCertificate: (files: { certificate: File; private_key: File; chain?: File | null }) =>
+    apiClient.uploadMultiple<SetupStepResponse>('/api/setup/ssl/upload', {
+      certificate: files.certificate,
+      private_key: files.private_key,
+      chain: files.chain ?? null,
+    }),
+
+  validateCertificate: (files: { certificate: File; private_key: File; chain?: File | null }) =>
+    apiClient.uploadMultiple<CertificateValidationResult>('/api/setup/ssl/validate', {
+      certificate: files.certificate,
+      private_key: files.private_key,
+      chain: files.chain ?? null,
+    }),
 }

@@ -50,15 +50,15 @@ onMounted(async () => {
       <!-- Stats -->
       <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <AppCard>
-          <p class="text-sm text-gray-500 dark:text-gray-400">Total Reports</p>
+          <p class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Total Reports</p>
           <p class="text-2xl font-bold text-gray-900 dark:text-gray-100 mt-1">{{ reportsTotal }}</p>
         </AppCard>
         <AppCard>
-          <p class="text-sm text-gray-500 dark:text-gray-400">Recent Jobs</p>
+          <p class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Recent Jobs</p>
           <p class="text-2xl font-bold text-gray-900 dark:text-gray-100 mt-1">{{ recentJobs.length }}</p>
         </AppCard>
         <AppCard>
-          <p class="text-sm text-gray-500 dark:text-gray-400">System Status</p>
+          <p class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">System Status</p>
           <div class="flex items-center gap-2 mt-1">
             <span class="w-3 h-3 rounded-full" :class="appStore.health?.status === 'healthy' ? 'bg-green-500' : 'bg-red-500'" />
             <span class="text-lg font-semibold text-gray-900 dark:text-gray-100">{{ appStore.health?.status === 'healthy' ? 'Healthy' : 'Unknown' }}</span>
