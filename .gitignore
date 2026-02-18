@@ -106,11 +106,8 @@ ENV/
 # PyCharm Project settings
 .idea/
 
-# VS Code launch config
-#.vscode/launch.json
-
 # Visual Studio Code settings
-#.vscode/
+.vscode/
 
 # I/O files
 output/
@@ -148,5 +145,9 @@ parsedmarc/resources/maps/unknown_domains.txt
 *.bak
 nul
 backend/data/parsedmarc.db
-.key
-.crt
+backend/data/certificates/
+backend/data/uploads/
+backend/data/tokens/
+*.key
+*.crt
+*-UK-PF4D9S07*

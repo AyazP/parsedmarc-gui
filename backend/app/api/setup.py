@@ -3,9 +3,12 @@ import os
 from pathlib import Path
 from typing import Optional, Union
 from datetime import datetime
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, status
+from urllib.parse import quote_plus
+from fastapi import APIRouter, Depends, HTTPException, Request, UploadFile, File, status
 from sqlalchemy.orm import Session
 from cryptography.fernet import Fernet
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 
 from app.db.session import get_db
 from app.models.setup import SetupStatus
@@ -30,6 +33,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/setup", tags=["Setup Wizard"])
+limiter = Limiter(key_func=get_remote_address)
 
 
 def _validate_db_path(db_path: str) -> Path:
@@ -49,6 +53,19 @@ def _validate_db_path(db_path: str) -> Path:
 
 # Initialize certificate service
 cert_service = CertificateService(cert_dir=settings.data_dir / "certificates")
+
+# Maximum upload size for certificate files (1 MB)
+_MAX_CERT_UPLOAD_BYTES = 1 * 1024 * 1024
+
+
+def _require_setup_incomplete(db: Session) -> None:
+    """Guard: reject requests if setup is already complete."""
+    setup = db.query(SetupStatus).first()
+    if setup and setup.is_complete:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Setup is already complete. Use the settings API to make changes.",
+        )
 
 
 def generate_encryption_key() -> str:
@@ -117,7 +134,9 @@ def generate_new_encryption_key():
 
 
 @router.post("/encryption-key", response_model=SetupStepResponse)
+@limiter.limit("5/minute")
 def setup_encryption_key(
+    request: Request,
     key_data: EncryptionKeySetup,
     db: Session = Depends(get_db)
 ):
@@ -126,6 +145,7 @@ def setup_encryption_key(
     Validates and saves the encryption key to environment.
     If no key is provided, a new one will be auto-generated.
     """
+    _require_setup_incomplete(db)
     try:
         # Auto-generate key if not provided
         encryption_key = key_data.encryption_key or generate_encryption_key()
@@ -179,12 +199,14 @@ def setup_encryption_key(
         logger.error(f"Failed to setup encryption key: {e}")
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Failed to setup encryption key: {str(e)}"
+            detail="Failed to setup encryption key. Check the key format and try again."
         )
 
 
 @router.post("/admin-credentials", response_model=SetupStepResponse)
+@limiter.limit("5/minute")
 def setup_admin_credentials(
+    request: Request,
     credentials: AdminCredentialsSetup,
     db: Session = Depends(get_db)
 ):
@@ -192,6 +214,7 @@ def setup_admin_credentials(
 
     Validates and saves admin username and password.
     """
+    _require_setup_incomplete(db)
     try:
         # Update .env file
         env_path = Path(__file__).parent.parent.parent.parent / ".env"
@@ -239,7 +262,7 @@ def setup_admin_credentials(
         logger.error(f"Failed to setup admin credentials: {e}")
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Failed to setup admin credentials: {str(e)}"
+            detail="Failed to setup admin credentials. Please try again."
         )
 
 
@@ -252,6 +275,7 @@ def setup_ssl(
 
     Supports self-signed, Let's Encrypt, or custom certificates.
     """
+    _require_setup_incomplete(db)
     try:
         result = None
 
@@ -378,7 +402,7 @@ def setup_ssl(
         logger.error(f"Failed to setup SSL: {e}")
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Failed to setup SSL: {str(e)}"
+            detail="Failed to setup SSL. Check certificate settings and try again."
         )
 
 
@@ -388,6 +412,7 @@ def setup_server(
     db: Session = Depends(get_db)
 ):
     """Set up server configuration."""
+    _require_setup_incomplete(db)
     try:
         # Update .env file
         env_path = Path(__file__).parent.parent.parent.parent / ".env"
@@ -436,17 +461,19 @@ def setup_server(
         logger.error(f"Failed to setup server: {e}")
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Failed to setup server: {str(e)}"
+            detail="Failed to setup server configuration. Please try again."
         )
 
 
 def _build_database_url(db_type: str, db_host: str, db_port: int,
                         db_name: str, db_user: str, db_password: str) -> str:
     """Build a SQLAlchemy database URL from setup fields."""
+    user = quote_plus(db_user)
+    password = quote_plus(db_password)
     if db_type == "postgresql":
-        return f"postgresql+psycopg2://{db_user}:{db_password}@{db_host}:{db_port}/{db_name}"
+        return f"postgresql+psycopg2://{user}:{password}@{db_host}:{db_port}/{db_name}"
     elif db_type == "mysql":
-        return f"mysql+pymysql://{db_user}:{db_password}@{db_host}:{db_port}/{db_name}"
+        return f"mysql+pymysql://{user}:{password}@{db_host}:{db_port}/{db_name}"
     raise ValueError(f"Unsupported database type: {db_type}")
 
 
@@ -456,6 +483,7 @@ def setup_database(
     db: Session = Depends(get_db)
 ):
     """Set up database configuration."""
+    _require_setup_incomplete(db)
     try:
         env_path = Path(__file__).parent.parent.parent.parent / ".env"
         env_content = ""
@@ -500,12 +528,14 @@ def setup_database(
         logger.error(f"Failed to setup database: {e}")
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Failed to setup database: {str(e)}"
+            detail="Failed to setup database. Check configuration and try again."
         )
 
 
 @router.post("/complete", response_model=SetupStepResponse)
+@limiter.limit("5/minute")
 def complete_setup(
+    request: Request,
     setup_data: CompleteSetup,
     db: Session = Depends(get_db)
 ):
@@ -669,7 +699,7 @@ def complete_setup(
         logger.error(f"Failed to complete setup: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to complete setup: {str(e)}"
+            detail="Failed to complete setup. Check configuration and try again."
         )
 
 
@@ -719,7 +749,7 @@ def renew_certificate(db: Session = Depends(get_db)):
         logger.error(f"Failed to renew certificate: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to renew certificate: {str(e)}"
+            detail="Failed to renew certificate. Check server logs for details."
         )
 
 
@@ -798,9 +828,16 @@ async def upload_ssl_certificate(
     Validates the certificate/key pair before saving.
     """
     try:
-        cert_data = await certificate.read()
-        key_data = await private_key.read()
-        chain_data = await chain.read() if chain else None
+        cert_data = await certificate.read(_MAX_CERT_UPLOAD_BYTES + 1)
+        key_data = await private_key.read(_MAX_CERT_UPLOAD_BYTES + 1)
+        chain_data = await chain.read(_MAX_CERT_UPLOAD_BYTES + 1) if chain else None
+
+        for name, data in [("Certificate", cert_data), ("Private key", key_data), ("Chain", chain_data)]:
+            if data and len(data) > _MAX_CERT_UPLOAD_BYTES:
+                raise HTTPException(
+                    status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+                    detail=f"{name} file exceeds maximum size of 1 MB",
+                )
 
         result = cert_service.save_uploaded_certificate(
             cert_data, key_data, chain_data
@@ -833,7 +870,7 @@ async def upload_ssl_certificate(
         logger.error(f"Failed to upload certificate: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to upload certificate: {e}",
+            detail="Failed to upload certificate. Check server logs for details.",
         )
 
 
@@ -848,9 +885,13 @@ async def validate_ssl_certificate(
     Use this to check files before uploading.
     """
     try:
-        cert_data = await certificate.read()
-        key_data = await private_key.read()
-        chain_data = await chain.read() if chain else None
+        cert_data = await certificate.read(_MAX_CERT_UPLOAD_BYTES + 1)
+        key_data = await private_key.read(_MAX_CERT_UPLOAD_BYTES + 1)
+        chain_data = await chain.read(_MAX_CERT_UPLOAD_BYTES + 1) if chain else None
+
+        for name, data in [("Certificate", cert_data), ("Private key", key_data), ("Chain", chain_data)]:
+            if data and len(data) > _MAX_CERT_UPLOAD_BYTES:
+                return CertificateValidationResult(valid=False, error=f"{name} file exceeds maximum size of 1 MB")
 
         result = cert_service.validate_certificate_pair(
             cert_data, key_data, chain_data

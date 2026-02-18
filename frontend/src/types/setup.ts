@@ -108,7 +108,6 @@ export interface CompleteSetupRequest {
 export interface CertificateInfo {
   type: string
   certificate?: string
-  private_key?: string
   subject?: string
   issuer?: string
   expires?: string

@@ -95,7 +95,7 @@ class MailboxService:
             password=settings_dict.get("password", ""),
             tenant_id=settings_dict["tenant_id"],
             token_file=token_file,
-            allow_unencrypted_storage=True,
+            allow_unencrypted_storage=False,
         )
 
     def _create_gmail_connection(
@@ -126,8 +126,21 @@ class MailboxService:
     ):
         """Decrypt Maildir settings and create MaildirConnection."""
         from parsedmarc.mail import MaildirConnection
+
+        # Validate maildir path is within the data directory
+        maildir_path = Path(settings_dict["path"]).resolve()
+        allowed_roots = [settings.data_dir.resolve(), Path.cwd().resolve()]
+        path_ok = any(
+            maildir_path == root or maildir_path.is_relative_to(root)
+            for root in allowed_roots
+        )
+        if not path_ok:
+            raise ValueError(
+                f"Maildir path must be within the data directory ({settings.data_dir})"
+            )
+
         return MaildirConnection(
-            maildir_path=settings_dict["path"],
+            maildir_path=str(maildir_path),
             maildir_create=False,
         )
 

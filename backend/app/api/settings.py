@@ -3,7 +3,9 @@ import logging
 import os
 from pathlib import Path
 
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, HTTPException, Query, Request, status
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 
 from app.config import settings
 from app.schemas.settings import (
@@ -21,6 +23,7 @@ from app.services.database_migration_service import migration_service
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/settings", tags=["Settings"])
+limiter = Limiter(key_func=get_remote_address)
 
 
 @router.get("/database", response_model=DatabaseInfoResponse)
@@ -41,12 +44,13 @@ def get_database_info():
 
 
 @router.post("/database/test", response_model=DatabaseTestResponse)
-def test_database_connection(request: DatabaseTestRequest):
+@limiter.limit("10/minute")
+def test_database_connection(request: Request, test_request: DatabaseTestRequest):
     """Test connectivity to a target database."""
     try:
         target_url = build_database_url(
-            request.db_type, request.host, request.port,
-            request.database, request.username, request.password,
+            test_request.db_type, test_request.host, test_request.port,
+            test_request.database, test_request.username, test_request.password,
         )
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
@@ -56,7 +60,8 @@ def test_database_connection(request: DatabaseTestRequest):
 
 
 @router.post("/database/migrate", response_model=DatabaseMigrateResponse)
-def migrate_database(request: DatabaseMigrateRequest):
+@limiter.limit("3/minute")
+def migrate_database(request: Request, migrate_request: DatabaseMigrateRequest):
     """Migrate data from the current database to a new target database.
 
     After a successful migration the .env file is updated with the new
@@ -64,8 +69,8 @@ def migrate_database(request: DatabaseMigrateRequest):
     """
     try:
         target_url = build_database_url(
-            request.db_type, request.host, request.port,
-            request.database, request.username, request.password,
+            migrate_request.db_type, migrate_request.host, migrate_request.port,
+            migrate_request.database, migrate_request.username, migrate_request.password,
         )
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
@@ -80,7 +85,7 @@ def migrate_database(request: DatabaseMigrateRequest):
 
     source_url = settings.effective_database_url
 
-    if request.migrate_data:
+    if migrate_request.migrate_data:
         result = migration_service.migrate(source_url, target_url)
     else:
         # Just create empty tables in the target
@@ -98,7 +103,7 @@ def migrate_database(request: DatabaseMigrateRequest):
         except Exception as e:
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail=f"Failed to create tables: {e}",
+                detail="Failed to create tables in target database.",
             )
         finally:
             target_engine.dispose()
@@ -111,11 +116,11 @@ def migrate_database(request: DatabaseMigrateRequest):
 
     # Update .env with the new database URL
     _update_env("PARSEDMARC_DATABASE_URL", target_url)
-    logger.info(f"Database migrated to {request.db_type}. Restart required.")
+    logger.info(f"Database migrated to {migrate_request.db_type}. Restart required.")
 
     return DatabaseMigrateResponse(
         success=True,
-        message=f"Migration to {request.db_type} completed. Restart the application to use the new database.",
+        message=f"Migration to {migrate_request.db_type} completed. Restart the application to use the new database.",
         tables_migrated=result.get("tables_migrated", 0),
         row_counts=result.get("row_counts"),
         restart_required=True,
@@ -123,11 +128,21 @@ def migrate_database(request: DatabaseMigrateRequest):
 
 
 @router.post("/database/purge", response_model=DatabasePurgeResponse)
-def purge_database():
+@limiter.limit("3/minute")
+def purge_database(
+    request: Request,
+    confirm: bool = Query(False, description="Must be true to confirm purge"),
+):
     """Delete all data from the SQLite database.
 
     Only available when the current database is SQLite.
+    Requires confirm=true as a safety guard.
     """
+    if not confirm:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Pass ?confirm=true to confirm data purge. This action is irreversible.",
+        )
     if settings.database_type != "sqlite":
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,

@@ -1,28 +1,53 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 
-defineProps<{
+const props = defineProps<{
   accept?: string
   disabled?: boolean
+  maxSizeMb?: number
 }>()
 
 const emit = defineEmits<{
   'file-selected': [file: File]
+  'error': [message: string]
 }>()
 
 const dragging = ref(false)
 const inputRef = ref<HTMLInputElement | null>(null)
 
+function _validateFile(file: File): boolean {
+  // Validate file type against accept prop
+  if (props.accept) {
+    const allowed = props.accept.split(',').map(s => s.trim().toLowerCase())
+    const ext = '.' + file.name.split('.').pop()?.toLowerCase()
+    const mime = file.type.toLowerCase()
+    const ok = allowed.some(a =>
+      a.startsWith('.') ? ext === a : mime === a || (a.endsWith('/*') && mime.startsWith(a.replace('/*', '/')))
+    )
+    if (!ok) {
+      emit('error', `File type not allowed. Accepted: ${props.accept}`)
+      return false
+    }
+  }
+  // Validate file size
+  const maxBytes = (props.maxSizeMb ?? 50) * 1024 * 1024
+  if (file.size > maxBytes) {
+    emit('error', `File exceeds maximum size of ${props.maxSizeMb ?? 50} MB`)
+    return false
+  }
+  return true
+}
+
 function handleDrop(e: DragEvent) {
   dragging.value = false
   const file = e.dataTransfer?.files[0]
-  if (file) emit('file-selected', file)
+  if (file && _validateFile(file)) emit('file-selected', file)
 }
 
 function handleFileInput(e: Event) {
   const input = e.target as HTMLInputElement
   const file = input.files?.[0]
-  if (file) emit('file-selected', file)
+  if (file && _validateFile(file)) emit('file-selected', file)
   input.value = ''
 }
 

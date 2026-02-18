@@ -1,15 +1,18 @@
 """Settings schemas for database migration API."""
 from typing import Optional, Dict, Literal
+from urllib.parse import quote_plus
 from pydantic import BaseModel, Field
 
 
 def build_database_url(db_type: str, host: str, port: int, database: str,
                        username: str, password: str) -> str:
     """Build a SQLAlchemy database URL from connection parameters."""
+    user = quote_plus(username)
+    pwd = quote_plus(password)
     if db_type == "postgresql":
-        return f"postgresql+psycopg2://{username}:{password}@{host}:{port}/{database}"
+        return f"postgresql+psycopg2://{user}:{pwd}@{host}:{port}/{database}"
     elif db_type == "mysql":
-        return f"mysql+pymysql://{username}:{password}@{host}:{port}/{database}"
+        return f"mysql+pymysql://{user}:{pwd}@{host}:{port}/{database}"
     raise ValueError(f"Unsupported database type: {db_type}")
 
 

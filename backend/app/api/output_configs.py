@@ -1,6 +1,6 @@
 """Output configuration API endpoints."""
 from typing import List
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 
@@ -59,8 +59,8 @@ def _serialize_config_for_response(config: OutputConfig) -> dict:
 
 @router.get("/", response_model=List[OutputConfigResponse])
 def list_output_configs(
-    skip: int = 0,
-    limit: int = 100,
+    skip: int = Query(0, ge=0),
+    limit: int = Query(100, ge=1, le=200),
     db: Session = Depends(get_db)
 ):
     """List all output configurations."""

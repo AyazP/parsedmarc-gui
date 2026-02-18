@@ -428,7 +428,7 @@ class CertificateService:
         )
 
         private_key = rsa.generate_private_key(
-            public_exponent=65537, key_size=2048, backend=default_backend()
+            public_exponent=65537, key_size=4096, backend=default_backend()
         )
 
         subject = issuer = x509.Name([
@@ -534,7 +534,11 @@ class CertificateService:
             cmd.append("--staging")
 
         if webroot_path:
-            cmd.extend(["--webroot", "-w", str(webroot_path)])
+            # Validate webroot path is an existing directory (no traversal)
+            resolved = webroot_path.resolve()
+            if not resolved.is_dir():
+                return {"success": False, "error": "Webroot path is not an existing directory"}
+            cmd.extend(["--webroot", "-w", str(resolved)])
         else:
             cmd.append("--standalone")
 

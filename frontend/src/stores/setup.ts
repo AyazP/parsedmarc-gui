@@ -93,7 +93,11 @@ export const useSetupStore = defineStore('setup', () => {
   }
 
   function updateWizardData(data: Partial<CompleteSetupRequest>) {
-    Object.assign(wizardData.value, data)
+    // Only merge known keys to prevent prototype pollution
+    const safe = Object.fromEntries(
+      Object.entries(data).filter(([k]) => !['__proto__', 'constructor', 'prototype'].includes(k))
+    )
+    Object.assign(wizardData.value, safe)
   }
 
   async function completeSetup() {
@@ -103,6 +107,10 @@ export const useSetupStore = defineStore('setup', () => {
       const result = await setupApi.complete(wizardData.value as CompleteSetupRequest)
       completionResult.value = result.data ?? null
       if (result.success) {
+        // Clear sensitive fields from reactive state after successful submission
+        wizardData.value.admin_password = ''
+        wizardData.value.encryption_key = ''
+        wizardData.value.db_password = ''
         await fetchStatus()
       }
       return result

@@ -41,6 +41,13 @@ function formatDate(dateStr: string | null): string {
   return new Date(dateStr).toLocaleString()
 }
 
+function isGitHubUrl(url: string | null | undefined): boolean {
+  if (!url) return false
+  try {
+    return new URL(url).hostname === 'github.com'
+  } catch { return false }
+}
+
 function handleDismiss() {
   updateStore.dismiss()
   emit('close')
@@ -89,6 +96,7 @@ function handleDismiss() {
 
       <!-- Link to release page -->
       <a
+        v-if="isGitHubUrl(updateStore.status.release_url)"
         :href="updateStore.status.release_url"
         target="_blank"
         rel="noopener noreferrer"

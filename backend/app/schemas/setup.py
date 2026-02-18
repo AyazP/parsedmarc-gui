@@ -218,10 +218,13 @@ class SetupStatusResponse(BaseModel):
 
 
 class CertificateInfo(BaseModel):
-    """Schema for certificate information."""
+    """Schema for certificate information.
+
+    NOTE: private_key is intentionally excluded — never send private key
+    material to the frontend.
+    """
     type: str
     certificate: Optional[str] = None
-    private_key: Optional[str] = None
     subject: Optional[str] = None
     issuer: Optional[str] = None
     expires: Optional[str] = None

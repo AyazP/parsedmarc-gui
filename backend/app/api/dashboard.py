@@ -3,7 +3,7 @@ import logging
 from datetime import datetime
 from typing import Optional, List
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from sqlalchemy import func
@@ -99,7 +99,7 @@ def get_dashboard_stats(db: Session = Depends(get_db)):
 
 @router.get("/activity", response_model=List[ActivityLogEntry])
 def get_recent_activity(
-    limit: int = 20,
+    limit: int = Query(20, ge=1, le=200),
     db: Session = Depends(get_db),
 ):
     """Get recent activity log entries."""

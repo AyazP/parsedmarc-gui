@@ -1,11 +1,15 @@
 """FastAPI application entry point."""
 import logging
 from contextlib import asynccontextmanager
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+from starlette.middleware.base import BaseHTTPMiddleware
 from fastapi.responses import FileResponse
 from pathlib import Path
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
 
 from app.config import settings
 from app.db.session import engine, Base
@@ -70,6 +74,9 @@ async def lifespan(app: FastAPI):
     logger.info("Shutdown complete.")
 
 
+# Rate limiter — uses client IP; default limits can be overridden per-route
+limiter = Limiter(key_func=get_remote_address, default_limits=["120/minute"])
+
 # Create FastAPI app
 app = FastAPI(
     title="ParseDMARC Web GUI",
@@ -78,14 +85,47 @@ app = FastAPI(
     lifespan=lifespan
 )
 
+# Wire rate limiter into the app
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
 # Configure CORS
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origins,
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allow_headers=["Content-Type", "Authorization", "X-Requested-With"],
 )
+
+
+class SecurityHeadersMiddleware(BaseHTTPMiddleware):
+    """Middleware that adds security headers to all responses."""
+
+    async def dispatch(self, request: Request, call_next) -> Response:
+        response = await call_next(request)
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["X-Frame-Options"] = "DENY"
+        response.headers["X-XSS-Protection"] = "1; mode=block"
+        response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+        response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
+        response.headers["Content-Security-Policy"] = (
+            "default-src 'self'; "
+            "script-src 'self'; "
+            "style-src 'self' 'unsafe-inline'; "
+            "img-src 'self' data:; "
+            "connect-src 'self'; "
+            "font-src 'self'; "
+            "frame-ancestors 'none'"
+        )
+        if settings.ssl_enabled:
+            response.headers["Strict-Transport-Security"] = (
+                "max-age=31536000; includeSubDomains"
+            )
+        return response
+
+
+app.add_middleware(SecurityHeadersMiddleware)
 
 # Import and register routers
 # Import each router individually to handle missing modules gracefully
@@ -122,9 +162,7 @@ async def system_info():
     """Get system information."""
     return {
         "version": APP_VERSION,
-        "database": str(settings.db_path),
         "database_type": settings.database_type,
-        "data_directory": str(settings.data_dir),
     }
 
 # Serve static files (frontend) if available
@@ -200,7 +238,7 @@ if __name__ == "__main__":
         "app": "app.main:app",
         "host": settings.host,
         "port": settings.port,
-        "reload": True,
+        "reload": settings.log_level.upper() == "DEBUG",
         "log_level": settings.log_level.lower(),
     }
 

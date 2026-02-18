@@ -19,5 +19,5 @@ export const settingsApi = {
     apiClient.post<DatabaseMigrateResponse>('/api/settings/database/migrate', config),
 
   purgeDatabase: () =>
-    apiClient.post<DatabasePurgeResponse>('/api/settings/database/purge', {}),
+    apiClient.post<DatabasePurgeResponse>('/api/settings/database/purge?confirm=true', {}),
 }

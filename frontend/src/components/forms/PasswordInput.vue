@@ -25,6 +25,7 @@ const visible = ref(false)
         :value="modelValue"
         :placeholder="placeholder"
         :disabled="disabled"
+        autocomplete="off"
         class="block w-full rounded-lg border px-3 py-2 pr-10 text-sm shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 disabled:bg-gray-50 dark:disabled:bg-gray-700 bg-white dark:bg-gray-700 dark:text-gray-100 dark:placeholder-gray-400"
         :class="error ? 'border-red-300 dark:border-red-500' : 'border-gray-300 dark:border-gray-600'"
         @input="$emit('update:modelValue', ($event.target as HTMLInputElement).value)"

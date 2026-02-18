@@ -23,11 +23,8 @@ class Settings(BaseSettings):
     # Security
     encryption_key: str = Field(..., validation_alias="PARSEDMARC_ENCRYPTION_KEY")
     gui_username: str = Field(default="admin", validation_alias="PARSEDMARC_GUI_USERNAME")
-    gui_password: str = Field(default="changeme", validation_alias="PARSEDMARC_GUI_PASSWORD")
-    secret_key: str = Field(
-        default="your-secret-key-change-in-production",
-        validation_alias="PARSEDMARC_SECRET_KEY"
-    )
+    gui_password: str = Field(..., validation_alias="PARSEDMARC_GUI_PASSWORD")
+    secret_key: str = Field(..., validation_alias="PARSEDMARC_SECRET_KEY")
 
     # Server
     host: str = Field(default="0.0.0.0", validation_alias="PARSEDMARC_HOST")

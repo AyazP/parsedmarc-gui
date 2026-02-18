@@ -1,14 +1,20 @@
 """Parsing API endpoints and schemas."""
 import logging
+import re
 import shutil
 import uuid
 from pathlib import Path
 from typing import Optional, List, Any
 from datetime import datetime
 
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Query, status
+# Maximum upload size for DMARC report files (50 MB)
+_MAX_UPLOAD_BYTES = 50 * 1024 * 1024
+
+from fastapi import APIRouter, Depends, HTTPException, Request, UploadFile, File, Query, status
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 
 from app.db.session import get_db
 from app.models.mailbox_config import MailboxConfig
@@ -92,6 +98,7 @@ class ConnectionTestResponse(BaseModel):
 # ---------- Router ----------
 
 router = APIRouter(prefix="/api/parse", tags=["Parsing"])
+limiter = Limiter(key_func=get_remote_address)
 
 
 @router.post("/mailbox/{config_id}", response_model=ParseJobResponse)
@@ -130,7 +137,9 @@ def parse_from_mailbox(
 
 
 @router.post("/upload", response_model=ParseJobResponse, status_code=status.HTTP_201_CREATED)
+@limiter.limit("10/minute")
 def parse_uploaded_file(
+    request: Request,
     file: UploadFile = File(...),
     db: Session = Depends(get_db),
 ):
@@ -154,17 +163,33 @@ def parse_uploaded_file(
     uploads_dir = Path(settings.data_dir) / "uploads"
     uploads_dir.mkdir(parents=True, exist_ok=True)
 
-    safe_filename = f"{uuid.uuid4().hex}_{file.filename}"
+    # Sanitize filename: keep only safe characters + extension
+    raw_name = file.filename or "upload"
+    sanitized_name = re.sub(r"[^\w.\-]", "_", Path(raw_name).stem)[:64]
+    safe_filename = f"{uuid.uuid4().hex}_{sanitized_name}{file_ext}"
     file_path = uploads_dir / safe_filename
 
     try:
+        # Stream-write with size limit
+        total_written = 0
         with open(file_path, "wb") as buffer:
-            shutil.copyfileobj(file.file, buffer)
+            while chunk := file.file.read(8192):
+                total_written += len(chunk)
+                if total_written > _MAX_UPLOAD_BYTES:
+                    buffer.close()
+                    file_path.unlink(missing_ok=True)
+                    raise HTTPException(
+                        status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+                        detail=f"File exceeds maximum upload size of {_MAX_UPLOAD_BYTES // (1024*1024)} MB",
+                    )
+                buffer.write(chunk)
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Failed to save uploaded file: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to save uploaded file: {e}",
+            detail="Failed to save uploaded file.",
         )
 
     job = parsing_service.parse_from_file(
@@ -220,9 +245,11 @@ def list_parsed_reports(
     if report_type:
         query = query.filter(ParsedReport.report_type == report_type)
     if domain:
-        query = query.filter(ParsedReport.domain.ilike(f"%{domain}%"))
+        escaped = domain.replace("%", r"\%").replace("_", r"\_")
+        query = query.filter(ParsedReport.domain.ilike(f"%{escaped}%"))
     if org_name:
-        query = query.filter(ParsedReport.org_name.ilike(f"%{org_name}%"))
+        escaped = org_name.replace("%", r"\%").replace("_", r"\_")
+        query = query.filter(ParsedReport.org_name.ilike(f"%{escaped}%"))
 
     total = query.count()
     items = (

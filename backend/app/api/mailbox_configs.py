@@ -1,9 +1,11 @@
 """Mailbox configuration API endpoints."""
 import logging
 from typing import List
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 
 from app.db.session import get_db
 from app.models.mailbox_config import MailboxConfig
@@ -19,6 +21,7 @@ from app.api.parsing import ConnectionTestResponse
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/configs/mailboxes", tags=["Mailbox Configurations"])
+limiter = Limiter(key_func=get_remote_address)
 encryption_service = EncryptionService()
 
 
@@ -63,8 +66,8 @@ def _serialize_config_for_response(config: MailboxConfig) -> dict:
 
 @router.get("/", response_model=List[MailboxConfigResponse])
 def list_mailbox_configs(
-    skip: int = 0,
-    limit: int = 100,
+    skip: int = Query(0, ge=0),
+    limit: int = Query(100, ge=1, le=200),
     db: Session = Depends(get_db)
 ):
     """List all mailbox configurations."""
@@ -229,7 +232,9 @@ def delete_mailbox_config(
 
 
 @router.post("/{config_id}/test", response_model=ConnectionTestResponse)
+@limiter.limit("10/minute")
 def test_mailbox_connection(
+    request: Request,
     config_id: int,
     db: Session = Depends(get_db),
 ):
