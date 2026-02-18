@@ -1,7 +1,7 @@
 # FastAPI and ASGI server
 fastapi==0.115.0
 uvicorn[standard]==0.32.0
-python-multipart==0.0.12
+python-multipart==0.0.22
 
 # Database
 sqlalchemy==2.0.36
@@ -9,8 +9,8 @@ alembic==1.14.0
 aiosqlite==0.20.0
 
 # Security
-cryptography==44.0.0
-python-jose[cryptography]==3.3.0
+cryptography==46.0.5
+PyJWT[crypto]==2.11.0
 passlib[bcrypt]==1.7.4
 
 # Background jobs
