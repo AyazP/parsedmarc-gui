@@ -79,12 +79,17 @@ def login(request: Request, response: Response, credentials: LoginRequest):
     # Create CSRF token
     csrf_token = auth_service.generate_csrf_token()
 
+    # Derive Secure flag from the actual request scheme, not the config.
+    # If SSL is configured but the server hasn't restarted yet (still HTTP),
+    # setting Secure=True would cause the browser to reject the cookie.
+    is_secure = request.url.scheme == "https"
+
     # Set HttpOnly cookie for JWT (browser can't read this via JS)
     response.set_cookie(
         key="access_token",
         value=access_token,
         httponly=True,
-        secure=settings.ssl_enabled,
+        secure=is_secure,
         samesite="lax",
         path="/",
         max_age=settings.access_token_expire_minutes * 60,
@@ -95,7 +100,7 @@ def login(request: Request, response: Response, credentials: LoginRequest):
         key="csrf_token",
         value=csrf_token,
         httponly=False,
-        secure=settings.ssl_enabled,
+        secure=is_secure,
         samesite="strict",
         path="/",
         max_age=settings.access_token_expire_minutes * 60,

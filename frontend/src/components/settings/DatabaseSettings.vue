@@ -10,6 +10,7 @@ import AppAlert from '@/components/ui/AppAlert.vue'
 import AppInput from '@/components/ui/AppInput.vue'
 import AppSelect from '@/components/ui/AppSelect.vue'
 import AppToggle from '@/components/ui/AppToggle.vue'
+import AppModal from '@/components/ui/AppModal.vue'
 
 const toast = useToast()
 
@@ -255,44 +256,17 @@ function cancelMigrate() {
         </div>
       </div>
 
-      <!-- Purge confirmation (SQLite only) -->
-      <div v-if="isSqlite && !showMigrateForm && (showPurgeConfirm || purgeResult)" class="border-t border-gray-200 dark:border-gray-700 pt-4 space-y-3">
-        <div v-if="showPurgeConfirm" class="space-y-3">
-          <AppAlert
-            type="error"
-            message="This will permanently delete ALL data from every table. This action cannot be undone."
-          />
-          <div class="flex items-center gap-3">
-            <AppButton
-              size="sm"
-              variant="danger"
-              :loading="purging"
-              @click="handlePurge"
-            >
-              Yes, Purge All Data
-            </AppButton>
-            <AppButton
-              size="sm"
-              variant="ghost"
-              :disabled="purging"
-              @click="cancelPurge"
-            >
-              Cancel
-            </AppButton>
-          </div>
-        </div>
-
-        <div v-if="purgeResult?.success" class="space-y-2">
-          <AppAlert type="success" :message="purgeResult.message" />
-          <div v-if="purgeResult.rows_deleted && Object.keys(purgeResult.rows_deleted).length > 0" class="grid grid-cols-2 sm:grid-cols-4 gap-2">
-            <div
-              v-for="(count, table) in purgeResult.rows_deleted"
-              :key="table"
-              class="bg-red-50 dark:bg-red-900/20 rounded px-3 py-2"
-            >
-              <p class="text-xs text-red-600 dark:text-red-400 truncate">{{ table }}</p>
-              <p class="text-sm font-medium text-red-800 dark:text-red-300">{{ count.toLocaleString() }} deleted</p>
-            </div>
+      <!-- Purge result (shown inline after successful purge) -->
+      <div v-if="isSqlite && purgeResult?.success" class="border-t border-gray-200 dark:border-gray-700 pt-4 space-y-2">
+        <AppAlert type="success" :message="purgeResult.message" />
+        <div v-if="purgeResult.rows_deleted && Object.keys(purgeResult.rows_deleted).length > 0" class="grid grid-cols-2 sm:grid-cols-4 gap-2">
+          <div
+            v-for="(count, table) in purgeResult.rows_deleted"
+            :key="table"
+            class="bg-red-50 dark:bg-red-900/20 rounded px-3 py-2"
+          >
+            <p class="text-xs text-red-600 dark:text-red-400 truncate">{{ table }}</p>
+            <p class="text-sm font-medium text-red-800 dark:text-red-300">{{ count.toLocaleString() }} deleted</p>
           </div>
         </div>
       </div>
@@ -412,4 +386,34 @@ function cancelMigrate() {
     </div>
     <div v-else class="text-sm text-gray-500 dark:text-gray-400">Unable to load database information.</div>
   </AppCard>
+
+  <!-- Purge confirmation modal -->
+  <AppModal :open="showPurgeConfirm" title="Purge Database" @close="cancelPurge">
+    <div class="space-y-4">
+      <AppAlert
+        type="error"
+        message="This will permanently delete ALL data and reset the system to its default state. This action cannot be undone."
+      />
+      <div class="rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 p-4 space-y-2">
+        <p class="text-sm font-medium text-red-800 dark:text-red-200">The following will be deleted:</p>
+        <ul class="text-sm text-red-700 dark:text-red-300 list-disc list-inside space-y-1">
+          <li>All parsed DMARC reports and parse job history</li>
+          <li>All mailbox and output configurations</li>
+          <li>Monitoring jobs and activity logs</li>
+          <li>Setup status &mdash; <strong>the setup wizard will need to be run again</strong></li>
+        </ul>
+        <p class="text-xs text-red-600 dark:text-red-400 mt-2">Your admin credentials, encryption key, and SSL settings stored in the environment file (.env) will not be affected.</p>
+      </div>
+    </div>
+    <template #footer>
+      <div class="flex items-center justify-end gap-3">
+        <AppButton size="sm" variant="ghost" :disabled="purging" @click="cancelPurge">
+          Cancel
+        </AppButton>
+        <AppButton size="sm" variant="danger" :loading="purging" @click="handlePurge">
+          Yes, Purge All Data
+        </AppButton>
+      </div>
+    </template>
+  </AppModal>
 </template>

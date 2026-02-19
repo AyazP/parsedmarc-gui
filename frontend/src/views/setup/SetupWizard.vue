@@ -34,8 +34,14 @@ function handleNext() {
   }
 }
 
+const needsRestart = computed(() => {
+  const result = setupStore.completionResult as Record<string, unknown> | null
+  return result?.needs_restart === true
+})
+
 function goToDashboard() {
-  router.push('/')
+  // User is auto-logged in after setup — go straight to dashboard
+  router.push({ name: 'dashboard' })
 }
 </script>
 
@@ -84,7 +90,7 @@ function goToDashboard() {
           Next
         </AppButton>
 
-        <AppButton v-if="setupStore.completionResult" @click="goToDashboard">
+        <AppButton v-if="setupStore.completionResult && !needsRestart" @click="goToDashboard">
           Go to Dashboard
         </AppButton>
       </div>

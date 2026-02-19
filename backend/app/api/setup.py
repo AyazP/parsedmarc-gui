@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import Optional, Union
 from datetime import datetime
 from urllib.parse import quote_plus
-from fastapi import APIRouter, Depends, HTTPException, Request, UploadFile, File, status
+from fastapi import APIRouter, Depends, HTTPException, Request, Response, UploadFile, File, status
 from sqlalchemy.orm import Session
 from cryptography.fernet import Fernet
 from slowapi import Limiter
@@ -28,6 +28,7 @@ from app.schemas.setup import (
     CertificateValidationResult,
 )
 from app.services.certificate_service import CertificateService
+from app.services import auth_service
 from app.services.auth_service import hash_password
 from app.dependencies.auth import get_current_user
 from app.config import settings
@@ -545,6 +546,7 @@ def setup_database(
 @limiter.limit("5/minute")
 def complete_setup(
     request: Request,
+    response: Response,
     setup_data: CompleteSetup,
     db: Session = Depends(get_db)
 ):
@@ -667,7 +669,17 @@ def complete_setup(
             validated_db_path = _validate_db_path(setup_data.db_path)
             validated_db_path.parent.mkdir(parents=True, exist_ok=True)
 
-        # 5. Update setup status
+        # 5. Update in-memory settings so login works without a server restart
+        settings.gui_username = setup_data.admin_username
+        settings.gui_password_hash = password_hash
+        settings.gui_password_plain = None
+        settings.secret_key = jwt_secret_key
+        settings.ssl_enabled = (setup_data.ssl_type != "skip")
+        settings.encryption_key = encryption_key
+        settings.host = setup_data.host
+        settings.port = setup_data.port
+
+        # 6. Update setup status
         setup = get_setup_status(db)
         setup.is_complete = True
         setup.encryption_key_set = True
@@ -692,11 +704,44 @@ def complete_setup(
 
         logger.info("Setup completed successfully")
 
+        # 7. Auto-login: set auth cookies so the user is immediately authenticated
+        access_token = auth_service.create_access_token(subject=setup_data.admin_username)
+        csrf_token = auth_service.generate_csrf_token()
+
+        # Don't set secure=True yet — the server is still on HTTP at this point
+        response.set_cookie(
+            key="access_token",
+            value=access_token,
+            httponly=True,
+            secure=False,
+            samesite="lax",
+            path="/",
+            max_age=settings.access_token_expire_minutes * 60,
+        )
+        response.set_cookie(
+            key="csrf_token",
+            value=csrf_token,
+            httponly=False,
+            secure=False,
+            samesite="strict",
+            path="/",
+            max_age=settings.access_token_expire_minutes * 60,
+        )
+
+        # Build the redirect URL for the frontend
+        scheme = "https" if setup_data.ssl_type != "skip" else "http"
+        host_for_url = setup_data.host if setup_data.host != "0.0.0.0" else "localhost"
+        default_port = 443 if scheme == "https" else 80
+        port_suffix = "" if setup_data.port == default_port else f":{setup_data.port}"
+        redirect_url = f"{scheme}://{host_for_url}{port_suffix}"
+
         response_data = {
             "ssl_configured": setup.ssl_configured,
             "ssl_type": setup.ssl_type,
             "ssl_result": ssl_result,
-            "encryption_key_auto_generated": was_key_auto_generated
+            "encryption_key_auto_generated": was_key_auto_generated,
+            "redirect_url": redirect_url,
+            "needs_restart": setup_data.ssl_type != "skip",
         }
 
         # Include encryption key in response if it was auto-generated (so user can save it)
@@ -708,7 +753,7 @@ def complete_setup(
             success=True,
             message="Setup completed successfully! " +
                    ("SAVE THE ENCRYPTION KEY DISPLAYED BELOW! " if was_key_auto_generated else "") +
-                   "Please restart the application for changes to take effect.",
+                   ("Restart the server to enable HTTPS." if setup_data.ssl_type != "skip" else ""),
             data=response_data
         )
 
@@ -770,6 +815,59 @@ def renew_certificate(db: Session = Depends(get_db), _user: str = Depends(get_cu
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to renew certificate. Check server logs for details."
         )
+
+
+# ------------------------------------------------------------------ #
+#  Server restart
+# ------------------------------------------------------------------ #
+
+@router.post("/restart", response_model=SetupStepResponse)
+async def restart_server(
+    request: Request,
+    db: Session = Depends(get_db),
+    _user: str = Depends(get_current_user),
+):
+    """Restart the server to apply new configuration (e.g. HTTPS).
+
+    This schedules a restart after a short delay so the response can be sent.
+    The server re-launches via ``python -m app.main`` which reads the
+    updated .env and applies SSL if configured.
+    """
+    import asyncio
+    import subprocess
+    import sys
+    import os as _os
+    import platform
+
+    backend_dir = str(Path(__file__).parent.parent.parent)
+
+    async def _do_restart():
+        await asyncio.sleep(1.5)
+        if platform.system() == "Windows":
+            # On Windows, os.execv behaviour is unreliable for long-running
+            # server processes.  Spawn a detached child and exit instead.
+            subprocess.Popen(
+                [sys.executable, "-m", "app.main"],
+                cwd=backend_dir,
+                creationflags=subprocess.CREATE_NEW_PROCESS_GROUP | subprocess.DETACHED_PROCESS,
+            )
+            _os._exit(0)
+        else:
+            _os.chdir(backend_dir)
+            _os.execv(sys.executable, [sys.executable, "-m", "app.main"])
+
+    asyncio.get_running_loop().create_task(_do_restart())
+
+    scheme = "https" if settings.ssl_enabled else "http"
+    host = settings.host if settings.host != "0.0.0.0" else "localhost"
+    default_port = 443 if scheme == "https" else 80
+    port_suffix = "" if settings.port == default_port else f":{settings.port}"
+
+    return SetupStepResponse(
+        success=True,
+        message="Server is restarting...",
+        data={"redirect_url": f"{scheme}://{host}{port_suffix}"},
+    )
 
 
 # ------------------------------------------------------------------ #

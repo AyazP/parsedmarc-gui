@@ -17,6 +17,7 @@ export const useAuthStore = defineStore('auth', () => {
       const result = await authApi.login(username, password)
       if (result.success) {
         user.value = result.user
+        checked.value = true
         return true
       }
       error.value = 'Login failed'

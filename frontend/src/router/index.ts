@@ -136,6 +136,9 @@ router.beforeEach(async (to) => {
   // 3. Redirect authenticated users away from login
   if (to.name === 'login') {
     const authStore = useAuthStore()
+    if (!authStore.checked) {
+      await authStore.checkAuth()
+    }
     if (authStore.isAuthenticated) {
       return { name: 'dashboard' }
     }

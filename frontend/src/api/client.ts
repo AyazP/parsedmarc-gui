@@ -24,7 +24,8 @@ function getCsrfToken(): string {
 function handleUnauthorized(): void {
   const path = window.location.pathname
   if (path !== '/login' && !path.startsWith('/setup')) {
-    window.location.href = '/login'
+    const redirect = encodeURIComponent(path + window.location.search)
+    window.location.href = `/login?redirect=${redirect}`
   }
 }
 

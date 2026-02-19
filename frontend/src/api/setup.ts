@@ -37,6 +37,9 @@ export const setupApi = {
   complete: (data: CompleteSetupRequest) =>
     apiClient.post<SetupStepResponse>('/api/setup/complete', data),
 
+  restart: () =>
+    apiClient.post<SetupStepResponse>('/api/setup/restart'),
+
   getCertificate: () => apiClient.get<CertificateInfo>('/api/setup/certificate'),
 
   renewCertificate: () =>
