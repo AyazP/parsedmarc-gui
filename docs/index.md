@@ -86,3 +86,21 @@ aggregate, forensic, and SMTP TLS reports — all from your browser.
 - [Understanding DMARC](dmarc.md) — DMARC alignment, SPF, DKIM
 - [Contributing](contributing.md) — Development setup and guidelines
 - [API Reference](api.md) — REST API endpoints and Python library
+
+```{toctree}
+:hidden:
+:maxdepth: 2
+
+installation
+web-gui
+usage
+output
+elasticsearch
+opensearch
+kibana
+splunk
+davmail
+dmarc
+contributing
+api
+```
