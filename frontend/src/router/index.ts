@@ -1,13 +1,27 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import type { RouteRecordRaw } from 'vue-router'
 import { useSetupStore } from '@/stores/setup'
+import { useAuthStore } from '@/stores/auth'
+
+declare module 'vue-router' {
+  interface RouteMeta {
+    layout?: 'app' | 'blank'
+    public?: boolean
+  }
+}
 
 const routes: RouteRecordRaw[] = [
+  {
+    path: '/login',
+    name: 'login',
+    component: () => import('@/views/LoginView.vue'),
+    meta: { layout: 'blank', public: true },
+  },
   {
     path: '/setup',
     name: 'setup',
     component: () => import('@/views/setup/SetupWizard.vue'),
-    meta: { layout: 'blank' },
+    meta: { layout: 'blank', public: true },
   },
   {
     path: '/',
@@ -89,6 +103,7 @@ const router = createRouter({
 })
 
 router.beforeEach(async (to) => {
+  // 1. Setup check — must run first (no auth before setup is complete)
   const setupStore = useSetupStore()
 
   if (setupStore.status === null) {
@@ -105,6 +120,25 @@ router.beforeEach(async (to) => {
 
   if (!setupStore.needsSetup && to.name === 'setup') {
     return { name: 'dashboard' }
+  }
+
+  // 2. Auth check — skip for public routes
+  if (!to.meta.public) {
+    const authStore = useAuthStore()
+    if (!authStore.isAuthenticated) {
+      await authStore.checkAuth()
+      if (!authStore.isAuthenticated) {
+        return { name: 'login', query: { redirect: to.fullPath } }
+      }
+    }
+  }
+
+  // 3. Redirect authenticated users away from login
+  if (to.name === 'login') {
+    const authStore = useAuthStore()
+    if (authStore.isAuthenticated) {
+      return { name: 'dashboard' }
+    }
   }
 
   return true

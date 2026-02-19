@@ -8,6 +8,7 @@ from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from app.db.session import get_db
+from app.dependencies.auth import get_current_user
 from app.models.mailbox_config import MailboxConfig
 from app.models.monitoring_job import MonitoringJob
 
@@ -61,7 +62,7 @@ def _get_monitoring_service():
 
 
 @router.get("/status", response_model=MonitoringStatusResponse)
-def get_monitoring_status(db: Session = Depends(get_db)):
+def get_monitoring_status(db: Session = Depends(get_db), _user: str = Depends(get_current_user)):
     """Get overall monitoring service status."""
     svc = _get_monitoring_service()
     total = db.query(MonitoringJob).count()
@@ -74,7 +75,7 @@ def get_monitoring_status(db: Session = Depends(get_db)):
 
 
 @router.get("/jobs", response_model=List[MonitoringJobResponse])
-def list_monitoring_jobs(db: Session = Depends(get_db)):
+def list_monitoring_jobs(db: Session = Depends(get_db), _user: str = Depends(get_current_user)):
     """List all monitoring jobs."""
     jobs = db.query(MonitoringJob).all()
     return jobs
@@ -84,6 +85,7 @@ def list_monitoring_jobs(db: Session = Depends(get_db)):
 def get_monitoring_job(
     mailbox_config_id: int,
     db: Session = Depends(get_db),
+    _user: str = Depends(get_current_user),
 ):
     """Get monitoring job for a specific mailbox config."""
     job = (
@@ -104,6 +106,7 @@ async def start_monitoring(
     mailbox_config_id: int,
     request: MonitoringJobCreate = MonitoringJobCreate(),
     db: Session = Depends(get_db),
+    _user: str = Depends(get_current_user),
 ):
     """Start monitoring a mailbox configuration."""
     svc = _get_monitoring_service()
@@ -151,6 +154,7 @@ async def start_monitoring(
 async def stop_monitoring(
     mailbox_config_id: int,
     db: Session = Depends(get_db),
+    _user: str = Depends(get_current_user),
 ):
     """Stop monitoring a mailbox configuration."""
     svc = _get_monitoring_service()

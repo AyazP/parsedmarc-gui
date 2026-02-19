@@ -3,8 +3,10 @@ import logging
 from datetime import datetime
 from typing import Optional
 
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
+
+from app.dependencies.auth import get_current_user
 
 logger = logging.getLogger(__name__)
 
@@ -48,7 +50,7 @@ def _get_update_service():
 
 
 @router.get("/status", response_model=UpdateStatusResponse)
-async def get_update_status():
+async def get_update_status(_user: str = Depends(get_current_user)):
     """Get current update status (returns cached result or checks now)."""
     svc = _get_update_service()
     result = svc.get_cached_result()
@@ -68,7 +70,7 @@ async def get_update_status():
 
 
 @router.post("/check", response_model=UpdateStatusResponse)
-async def check_for_updates():
+async def check_for_updates(_user: str = Depends(get_current_user)):
     """Force an immediate update check (bypasses cache)."""
     svc = _get_update_service()
     result = await svc.check_now()
@@ -86,7 +88,7 @@ async def check_for_updates():
 
 
 @router.get("/settings", response_model=UpdateSettingsResponse)
-async def get_update_settings():
+async def get_update_settings(_user: str = Depends(get_current_user)):
     """Get update checker settings."""
     from app.config import settings
     svc = _get_update_service()

@@ -8,6 +8,7 @@ from slowapi import Limiter
 from slowapi.util import get_remote_address
 
 from app.db.session import get_db
+from app.dependencies.auth import get_current_user
 from app.models.mailbox_config import MailboxConfig
 from app.schemas.mailbox_config import (
     MailboxConfigCreate,
@@ -68,7 +69,8 @@ def _serialize_config_for_response(config: MailboxConfig) -> dict:
 def list_mailbox_configs(
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=200),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    _user: str = Depends(get_current_user),
 ):
     """List all mailbox configurations."""
     configs = db.query(MailboxConfig).offset(skip).limit(limit).all()
@@ -78,7 +80,8 @@ def list_mailbox_configs(
 @router.get("/{config_id}", response_model=MailboxConfigResponse)
 def get_mailbox_config(
     config_id: int,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    _user: str = Depends(get_current_user),
 ):
     """Get a specific mailbox configuration by ID."""
     config = db.query(MailboxConfig).filter(MailboxConfig.id == config_id).first()
@@ -93,7 +96,8 @@ def get_mailbox_config(
 @router.post("/", response_model=MailboxConfigResponse, status_code=status.HTTP_201_CREATED)
 def create_mailbox_config(
     config_data: MailboxConfigCreate,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    _user: str = Depends(get_current_user),
 ):
     """Create a new mailbox configuration."""
 
@@ -159,7 +163,8 @@ def create_mailbox_config(
 def update_mailbox_config(
     config_id: int,
     config_data: MailboxConfigUpdate,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    _user: str = Depends(get_current_user),
 ):
     """Update an existing mailbox configuration."""
     db_config = db.query(MailboxConfig).filter(MailboxConfig.id == config_id).first()
@@ -214,7 +219,8 @@ def update_mailbox_config(
 @router.delete("/{config_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_mailbox_config(
     config_id: int,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    _user: str = Depends(get_current_user),
 ):
     """Delete a mailbox configuration."""
     db_config = db.query(MailboxConfig).filter(MailboxConfig.id == config_id).first()
@@ -237,6 +243,7 @@ def test_mailbox_connection(
     request: Request,
     config_id: int,
     db: Session = Depends(get_db),
+    _user: str = Depends(get_current_user),
 ):
     """
     Test connectivity to a mailbox configuration.

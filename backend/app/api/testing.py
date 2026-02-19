@@ -12,6 +12,7 @@ from slowapi import Limiter
 from slowapi.util import get_remote_address
 
 from app.db.session import get_db
+from app.dependencies.auth import get_current_user
 from app.models.output_config import OutputConfig
 from app.services.encryption_service import EncryptionService
 
@@ -77,6 +78,7 @@ def test_output_connection(
     request: Request,
     config_id: int,
     db: Session = Depends(get_db),
+    _user: str = Depends(get_current_user),
 ):
     """
     Test connectivity to an output destination.

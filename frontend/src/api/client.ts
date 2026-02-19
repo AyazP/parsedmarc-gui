@@ -8,12 +8,41 @@ export class ApiError extends Error {
   }
 }
 
+/**
+ * Read the CSRF token from the csrf_token cookie (set by the backend on login).
+ * Returns empty string if the cookie is not found.
+ */
+function getCsrfToken(): string {
+  const match = document.cookie.match(/(?:^|;\s*)csrf_token=([^;]+)/)
+  return match ? decodeURIComponent(match[1]) : ''
+}
+
+/**
+ * Handle 401 responses by redirecting to the login page.
+ * Skips redirect if already on /login or /setup.
+ */
+function handleUnauthorized(): void {
+  const path = window.location.pathname
+  if (path !== '/login' && !path.startsWith('/setup')) {
+    window.location.href = '/login'
+  }
+}
+
 class ApiClient {
   async request<T>(endpoint: string, options: { method?: string; body?: unknown; headers?: Record<string, string> } = {}): Promise<T> {
     const { method = 'GET', body, headers = {} } = options
 
+    // Add CSRF token header for state-changing methods
+    if (method !== 'GET') {
+      const csrf = getCsrfToken()
+      if (csrf) {
+        headers['X-CSRF-Token'] = csrf
+      }
+    }
+
     const config: RequestInit = {
       method,
+      credentials: 'same-origin',
       headers: {
         'Content-Type': 'application/json',
         ...headers,
@@ -27,6 +56,10 @@ class ApiClient {
     const response = await fetch(endpoint, config)
 
     if (!response.ok) {
+      if (response.status === 401) {
+        handleUnauthorized()
+        throw new ApiError(401, 'Session expired')
+      }
       const errorBody = await response.json().catch(() => ({ detail: response.statusText }))
       throw new ApiError(response.status, errorBody.detail || 'Request failed')
     }
@@ -58,12 +91,24 @@ class ApiClient {
     const formData = new FormData()
     formData.append('file', file)
 
+    const csrfHeaders: Record<string, string> = {}
+    const csrf = getCsrfToken()
+    if (csrf) {
+      csrfHeaders['X-CSRF-Token'] = csrf
+    }
+
     const response = await fetch(endpoint, {
       method: 'POST',
+      credentials: 'same-origin',
+      headers: csrfHeaders,
       body: formData,
     })
 
     if (!response.ok) {
+      if (response.status === 401) {
+        handleUnauthorized()
+        throw new ApiError(401, 'Session expired')
+      }
       const errorBody = await response.json().catch(() => ({ detail: response.statusText }))
       throw new ApiError(response.status, errorBody.detail || 'Upload failed')
     }
@@ -79,12 +124,24 @@ class ApiClient {
       }
     }
 
+    const csrfHeaders: Record<string, string> = {}
+    const csrf = getCsrfToken()
+    if (csrf) {
+      csrfHeaders['X-CSRF-Token'] = csrf
+    }
+
     const response = await fetch(endpoint, {
       method: 'POST',
+      credentials: 'same-origin',
+      headers: csrfHeaders,
       body: formData,
     })
 
     if (!response.ok) {
+      if (response.status === 401) {
+        handleUnauthorized()
+        throw new ApiError(401, 'Session expired')
+      }
       const errorBody = await response.json().catch(() => ({ detail: response.statusText }))
       throw new ApiError(response.status, errorBody.detail || 'Upload failed')
     }

@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func
 
 from app.db.session import get_db
+from app.dependencies.auth import get_current_user
 from app.models.parse_job import ParseJob
 from app.models.parsed_report import ParsedReport
 from app.models.mailbox_config import MailboxConfig
@@ -57,7 +58,7 @@ router = APIRouter(prefix="/api/dashboard", tags=["Dashboard"])
 
 
 @router.get("/stats", response_model=DashboardStats)
-def get_dashboard_stats(db: Session = Depends(get_db)):
+def get_dashboard_stats(db: Session = Depends(get_db), _user: str = Depends(get_current_user)):
     """Get aggregated dashboard statistics."""
     # Report counts by type
     report_counts = (
@@ -101,6 +102,7 @@ def get_dashboard_stats(db: Session = Depends(get_db)):
 def get_recent_activity(
     limit: int = Query(20, ge=1, le=200),
     db: Session = Depends(get_db),
+    _user: str = Depends(get_current_user),
 ):
     """Get recent activity log entries."""
     entries = (
@@ -113,7 +115,7 @@ def get_recent_activity(
 
 
 @router.get("", response_model=DashboardResponse)
-def get_dashboard(db: Session = Depends(get_db)):
+def get_dashboard(db: Session = Depends(get_db), _user: str = Depends(get_current_user)):
     """Get full dashboard data (stats + recent activity)."""
     stats = get_dashboard_stats(db)
     activity = get_recent_activity(limit=10, db=db)

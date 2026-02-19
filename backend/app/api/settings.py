@@ -3,11 +3,12 @@ import logging
 import os
 from pathlib import Path
 
-from fastapi import APIRouter, HTTPException, Query, Request, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from slowapi import Limiter
 from slowapi.util import get_remote_address
 
 from app.config import settings
+from app.dependencies.auth import get_current_user
 from app.schemas.settings import (
     DatabaseTestRequest,
     DatabaseTestResponse,
@@ -27,7 +28,7 @@ limiter = Limiter(key_func=get_remote_address)
 
 
 @router.get("/database", response_model=DatabaseInfoResponse)
-def get_database_info():
+def get_database_info(_user: str = Depends(get_current_user)):
     """Get information about the current database."""
     current_url = settings.effective_database_url
     try:
@@ -45,7 +46,7 @@ def get_database_info():
 
 @router.post("/database/test", response_model=DatabaseTestResponse)
 @limiter.limit("10/minute")
-def test_database_connection(request: Request, test_request: DatabaseTestRequest):
+def test_database_connection(request: Request, test_request: DatabaseTestRequest, _user: str = Depends(get_current_user)):
     """Test connectivity to a target database."""
     try:
         target_url = build_database_url(
@@ -61,7 +62,7 @@ def test_database_connection(request: Request, test_request: DatabaseTestRequest
 
 @router.post("/database/migrate", response_model=DatabaseMigrateResponse)
 @limiter.limit("3/minute")
-def migrate_database(request: Request, migrate_request: DatabaseMigrateRequest):
+def migrate_database(request: Request, migrate_request: DatabaseMigrateRequest, _user: str = Depends(get_current_user)):
     """Migrate data from the current database to a new target database.
 
     After a successful migration the .env file is updated with the new
@@ -132,6 +133,7 @@ def migrate_database(request: Request, migrate_request: DatabaseMigrateRequest):
 def purge_database(
     request: Request,
     confirm: bool = Query(False, description="Must be true to confirm purge"),
+    _user: str = Depends(get_current_user),
 ):
     """Delete all data from the SQLite database.
 

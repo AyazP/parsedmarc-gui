@@ -1,5 +1,6 @@
 """Setup wizard API endpoints."""
 import os
+import secrets
 from pathlib import Path
 from typing import Optional, Union
 from datetime import datetime
@@ -27,6 +28,8 @@ from app.schemas.setup import (
     CertificateValidationResult,
 )
 from app.services.certificate_service import CertificateService
+from app.services.auth_service import hash_password
+from app.dependencies.auth import get_current_user
 from app.config import settings
 import logging
 
@@ -225,6 +228,9 @@ def setup_admin_credentials(
             with open(env_path, "r") as f:
                 env_content = f.read()
 
+        # Hash the password with bcrypt before storing
+        password_hash = hash_password(credentials.password)
+
         # Update credentials
         lines = env_content.split("\n")
         username_updated = False
@@ -234,14 +240,17 @@ def setup_admin_credentials(
             if line.startswith("PARSEDMARC_GUI_USERNAME="):
                 lines[i] = f"PARSEDMARC_GUI_USERNAME={credentials.username}"
                 username_updated = True
-            elif line.startswith("PARSEDMARC_GUI_PASSWORD="):
-                lines[i] = f"PARSEDMARC_GUI_PASSWORD={credentials.password}"
+            elif line.startswith("PARSEDMARC_GUI_PASSWORD_HASH="):
+                lines[i] = f"PARSEDMARC_GUI_PASSWORD_HASH={password_hash}"
                 password_updated = True
+
+        # Remove any legacy plaintext password line
+        lines = [l for l in lines if not l.startswith("PARSEDMARC_GUI_PASSWORD=")]
 
         if not username_updated:
             lines.append(f"PARSEDMARC_GUI_USERNAME={credentials.username}")
         if not password_updated:
-            lines.append(f"PARSEDMARC_GUI_PASSWORD={credentials.password}")
+            lines.append(f"PARSEDMARC_GUI_PASSWORD_HASH={password_hash}")
 
         # Write back to .env
         _secure_write_env(env_path, "\n".join(lines))
@@ -604,11 +613,18 @@ def complete_setup(
 
         lines = env_content.split("\n") if env_content else []
 
+        # Hash admin password with bcrypt
+        password_hash = hash_password(setup_data.admin_password)
+
+        # Generate JWT secret key
+        jwt_secret_key = secrets.token_urlsafe(64)
+
         # Settings to update (use generated encryption_key, not from setup_data)
         env_updates = {
             "PARSEDMARC_ENCRYPTION_KEY": encryption_key,
             "PARSEDMARC_GUI_USERNAME": setup_data.admin_username,
-            "PARSEDMARC_GUI_PASSWORD": setup_data.admin_password,
+            "PARSEDMARC_GUI_PASSWORD_HASH": password_hash,
+            "PARSEDMARC_SECRET_KEY": jwt_secret_key,
             "PARSEDMARC_HOST": setup_data.host,
             "PARSEDMARC_PORT": str(setup_data.port),
             "PARSEDMARC_CORS_ORIGINS": setup_data.cors_origins,
@@ -633,6 +649,9 @@ def complete_setup(
 
         for key, value in env_updates.items():
             _update_env_lines(lines, key, value)
+
+        # Remove legacy plaintext password (replaced by hash above)
+        _remove_env_line(lines, "PARSEDMARC_GUI_PASSWORD")
 
         # Remove conflicting DB keys
         if db_type == "sqlite":
@@ -704,7 +723,7 @@ def complete_setup(
 
 
 @router.get("/certificate", response_model=CertificateInfo)
-def get_certificate_info():
+def get_certificate_info(_user: str = Depends(get_current_user)):
     """Get information about the current SSL certificate."""
     cert_info = cert_service.get_active_certificate()
 
@@ -718,7 +737,7 @@ def get_certificate_info():
 
 
 @router.post("/certificate/renew", response_model=SetupStepResponse)
-def renew_certificate(db: Session = Depends(get_db)):
+def renew_certificate(db: Session = Depends(get_db), _user: str = Depends(get_current_user)):
     """Renew Let's Encrypt certificate."""
     try:
         setup = get_setup_status(db)
@@ -822,6 +841,7 @@ async def upload_ssl_certificate(
     private_key: UploadFile = File(..., description="PEM private key file"),
     chain: Optional[UploadFile] = File(None, description="PEM chain file (optional)"),
     db: Session = Depends(get_db),
+    _user: str = Depends(get_current_user),
 ):
     """Upload and apply a custom SSL certificate.
 
@@ -879,6 +899,7 @@ async def validate_ssl_certificate(
     certificate: UploadFile = File(..., description="PEM certificate file"),
     private_key: UploadFile = File(..., description="PEM private key file"),
     chain: Optional[UploadFile] = File(None, description="PEM chain file (optional)"),
+    _user: str = Depends(get_current_user),
 ):
     """Validate a certificate/key pair without saving.
 

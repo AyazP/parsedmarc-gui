@@ -5,7 +5,7 @@ from fastapi import FastAPI, HTTPException, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from starlette.middleware.base import BaseHTTPMiddleware
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, JSONResponse
 from pathlib import Path
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
@@ -95,7 +95,7 @@ app.add_middleware(
     allow_origins=settings.cors_origins,
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allow_headers=["Content-Type", "Authorization", "X-Requested-With"],
+    allow_headers=["Content-Type", "Authorization", "X-Requested-With", "X-CSRF-Token"],
 )
 
 
@@ -127,6 +127,34 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
 
 app.add_middleware(SecurityHeadersMiddleware)
 
+
+# Paths exempt from CSRF validation (login, setup during first-run, health check)
+_CSRF_EXEMPT_PREFIXES = ("/api/auth/login", "/api/setup/", "/api/health")
+
+
+class CSRFMiddleware(BaseHTTPMiddleware):
+    """Double-submit cookie CSRF protection.
+
+    For state-changing methods (POST, PUT, DELETE) on non-exempt paths,
+    the X-CSRF-Token header must match the csrf_token cookie value.
+    """
+
+    async def dispatch(self, request: Request, call_next) -> Response:
+        if request.method in ("POST", "PUT", "DELETE"):
+            path = request.url.path
+            if not any(path.startswith(prefix) for prefix in _CSRF_EXEMPT_PREFIXES):
+                header_token = request.headers.get("x-csrf-token")
+                cookie_token = request.cookies.get("csrf_token")
+                if not header_token or not cookie_token or header_token != cookie_token:
+                    return JSONResponse(
+                        status_code=403,
+                        content={"detail": "CSRF validation failed"},
+                    )
+        return await call_next(request)
+
+
+app.add_middleware(CSRFMiddleware)
+
 # Import and register routers
 # Import each router individually to handle missing modules gracefully
 
@@ -141,7 +169,7 @@ def _register_router(module_name: str):
         logger.error("Failed to register %s router: %s", module_name, e)
 
 for _router_name in [
-    "setup", "mailbox_configs", "output_configs", "testing",
+    "auth", "setup", "mailbox_configs", "output_configs", "testing",
     "parsing", "monitoring", "dashboard", "updates", "settings",
 ]:
     _register_router(_router_name)

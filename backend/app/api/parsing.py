@@ -17,6 +17,7 @@ from slowapi import Limiter
 from slowapi.util import get_remote_address
 
 from app.db.session import get_db
+from app.dependencies.auth import get_current_user
 from app.models.mailbox_config import MailboxConfig
 from app.models.parse_job import ParseJob
 from app.models.parsed_report import ParsedReport
@@ -106,6 +107,7 @@ def parse_from_mailbox(
     config_id: int,
     request: ParseMailboxRequest = ParseMailboxRequest(),
     db: Session = Depends(get_db),
+    _user: str = Depends(get_current_user),
 ):
     """
     Trigger DMARC report parsing from a mailbox configuration.
@@ -142,6 +144,7 @@ def parse_uploaded_file(
     request: Request,
     file: UploadFile = File(...),
     db: Session = Depends(get_db),
+    _user: str = Depends(get_current_user),
 ):
     """
     Upload and parse a DMARC report file.
@@ -206,6 +209,7 @@ def list_parse_jobs(
     limit: int = Query(50, ge=1, le=200),
     status_filter: Optional[str] = Query(None, alias="status"),
     db: Session = Depends(get_db),
+    _user: str = Depends(get_current_user),
 ):
     """List parse jobs with optional status filtering."""
     query = db.query(ParseJob)
@@ -220,6 +224,7 @@ def list_parse_jobs(
 def get_parse_job(
     job_id: int,
     db: Session = Depends(get_db),
+    _user: str = Depends(get_current_user),
 ):
     """Get a specific parse job by ID."""
     job = db.query(ParseJob).filter(ParseJob.id == job_id).first()
@@ -239,6 +244,7 @@ def list_parsed_reports(
     domain: Optional[str] = Query(None, description="Filter by domain"),
     org_name: Optional[str] = Query(None, description="Filter by organization name"),
     db: Session = Depends(get_db),
+    _user: str = Depends(get_current_user),
 ):
     """List parsed reports with filtering and pagination."""
     query = db.query(ParsedReport)
@@ -266,6 +272,7 @@ def list_parsed_reports(
 def get_parsed_report(
     report_id: int,
     db: Session = Depends(get_db),
+    _user: str = Depends(get_current_user),
 ):
     """Get a specific parsed report by ID."""
     report = (

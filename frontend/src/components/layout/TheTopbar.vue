@@ -1,8 +1,17 @@
 <script setup lang="ts">
+import { useRouter } from 'vue-router'
 import { useAppStore } from '@/stores/app'
+import { useAuthStore } from '@/stores/auth'
 import UpdateBadge from '@/components/updates/UpdateBadge.vue'
 
+const router = useRouter()
 const appStore = useAppStore()
+const authStore = useAuthStore()
+
+async function handleLogout() {
+  await authStore.logout()
+  router.push({ name: 'login' })
+}
 </script>
 
 <template>
@@ -39,6 +48,20 @@ const appStore = useAppStore()
           }"
         />
         <span>{{ appStore.health?.version ?? '...' }}</span>
+      </div>
+      <!-- User + Logout -->
+      <div v-if="authStore.isAuthenticated" class="flex items-center gap-2 ml-2 pl-2 border-l border-gray-200 dark:border-gray-600">
+        <span class="text-sm text-gray-600 dark:text-gray-400">{{ authStore.user?.username }}</span>
+        <button
+          class="p-2 rounded-lg text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-red-600 dark:hover:text-red-400 transition-colors"
+          title="Logout"
+          @click="handleLogout"
+        >
+          <!-- Logout icon (arrow-right-on-rectangle) -->
+          <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9" />
+          </svg>
+        </button>
       </div>
     </div>
   </header>

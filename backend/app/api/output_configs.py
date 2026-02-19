@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 
 from app.db.session import get_db
+from app.dependencies.auth import get_current_user
 from app.models.output_config import OutputConfig
 from app.schemas.output_config import (
     OutputConfigCreate,
@@ -61,7 +62,8 @@ def _serialize_config_for_response(config: OutputConfig) -> dict:
 def list_output_configs(
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=200),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    _user: str = Depends(get_current_user),
 ):
     """List all output configurations."""
     configs = db.query(OutputConfig).offset(skip).limit(limit).all()
@@ -71,7 +73,8 @@ def list_output_configs(
 @router.get("/{config_id}", response_model=OutputConfigResponse)
 def get_output_config(
     config_id: int,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    _user: str = Depends(get_current_user),
 ):
     """Get a specific output configuration by ID."""
     config = db.query(OutputConfig).filter(OutputConfig.id == config_id).first()
@@ -86,7 +89,8 @@ def get_output_config(
 @router.post("/", response_model=OutputConfigResponse, status_code=status.HTTP_201_CREATED)
 def create_output_config(
     config_data: OutputConfigCreate,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    _user: str = Depends(get_current_user),
 ):
     """Create a new output configuration."""
 
@@ -129,7 +133,8 @@ def create_output_config(
 def update_output_config(
     config_id: int,
     config_data: OutputConfigUpdate,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    _user: str = Depends(get_current_user),
 ):
     """Update an existing output configuration."""
     db_config = db.query(OutputConfig).filter(OutputConfig.id == config_id).first()
@@ -177,7 +182,8 @@ def update_output_config(
 @router.delete("/{config_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_output_config(
     config_id: int,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    _user: str = Depends(get_current_user),
 ):
     """Delete an output configuration."""
     db_config = db.query(OutputConfig).filter(OutputConfig.id == config_id).first()

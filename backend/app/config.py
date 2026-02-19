@@ -1,5 +1,5 @@
 """Application configuration."""
-import os
+import secrets
 from pathlib import Path
 from typing import List, Optional, Union
 from pydantic import Field, field_validator
@@ -23,8 +23,16 @@ class Settings(BaseSettings):
     # Security
     encryption_key: str = Field(..., validation_alias="PARSEDMARC_ENCRYPTION_KEY")
     gui_username: str = Field(default="admin", validation_alias="PARSEDMARC_GUI_USERNAME")
-    gui_password: str = Field(..., validation_alias="PARSEDMARC_GUI_PASSWORD")
-    secret_key: str = Field(..., validation_alias="PARSEDMARC_SECRET_KEY")
+
+    # Password: prefer bcrypt hash; fall back to plaintext for legacy installs
+    gui_password_hash: Optional[str] = Field(default=None, validation_alias="PARSEDMARC_GUI_PASSWORD_HASH")
+    gui_password_plain: Optional[str] = Field(default=None, validation_alias="PARSEDMARC_GUI_PASSWORD")
+
+    # JWT signing key — auto-generated if not provided
+    secret_key: str = Field(
+        default_factory=lambda: secrets.token_urlsafe(64),
+        validation_alias="PARSEDMARC_SECRET_KEY",
+    )
 
     # Server
     host: str = Field(default="0.0.0.0", validation_alias="PARSEDMARC_HOST")
