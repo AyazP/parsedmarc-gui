@@ -1,16 +1,142 @@
 # Installation
 
-## Prerequisites
+## Web GUI (Recommended)
 
-`parsedmarc` works with Python 3 only.
+The Web GUI provides a browser-based interface for parsedmarc. Choose one of
+the following installation methods.
 
-### Testing multiple report analyzers
+### Docker (Quickest)
+
+**Prerequisites:** Docker and Docker Compose
+
+```bash
+# Clone the repository
+git clone https://github.com/AyazP/parsedmarc-gui.git
+cd parsedmarc-gui
+
+# Start the application
+docker compose up -d
+```
+
+Open `http://localhost:8000` — the setup wizard will guide you through
+initial configuration.
+
+#### Docker with Elasticsearch or OpenSearch
+
+```bash
+# GUI + Elasticsearch
+docker compose --profile elasticsearch up -d
+
+# GUI + OpenSearch
+docker compose --profile opensearch up -d
+```
+
+#### Docker environment variables
+
+The following environment variables can be set in `docker-compose.yml` or
+passed via a `.env` file:
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `PARSEDMARC_HOST` | `0.0.0.0` | Server bind address |
+| `PARSEDMARC_PORT` | `8000` | Server port |
+| `PARSEDMARC_DB_PATH` | `./data/parsedmarc.db` | SQLite database path |
+| `PARSEDMARC_LOG_LEVEL` | `INFO` | Log level |
+| `PARSEDMARC_DOCKER` | `true` | Docker mode flag |
+
+All other settings (encryption key, admin credentials, SSL, database) are
+configured through the setup wizard on first run.
+
+See {doc}`web-gui` for the full configuration reference.
+
+### Manual Installation
+
+**Prerequisites:**
+- Python 3.9 or later
+- Node.js 20 or later (for building the frontend)
+- pip (Python package manager)
+
+#### 1. Clone the repository
+
+```bash
+git clone https://github.com/AyazP/parsedmarc-gui.git
+cd parsedmarc-gui
+```
+
+#### 2. Install backend dependencies
+
+```bash
+cd backend
+pip install -r requirements.txt
+```
+
+:::{note}
+On Debian/Ubuntu, you may need to install build dependencies first:
+```bash
+sudo apt-get install -y python3-pip python3-dev libxml2-dev libxslt-dev
+```
+On CentOS/RHEL:
+```bash
+sudo dnf install -y python3-pip python3-devel libxml2-devel libxslt-devel
+```
+:::
+
+#### 3. Build the frontend
+
+```bash
+cd ../frontend
+npm ci
+npm run build
+```
+
+The built files are output to `backend/static/` and served by FastAPI
+automatically.
+
+#### 4. Start the server
+
+```bash
+cd ../backend
+python -m app.main
+```
+
+Open `http://localhost:8000` in your browser. The setup wizard will guide
+you through initial configuration.
+
+### Development Mode
+
+For frontend hot-reload during development:
+
+```bash
+# Terminal 1: Backend (auto-reloads on Python changes in DEBUG mode)
+cd backend
+PARSEDMARC_LOG_LEVEL=DEBUG python -m app.main
+
+# Terminal 2: Frontend dev server (hot-reload, proxies API to backend)
+cd frontend
+npm run dev
+```
+
+The frontend dev server runs on `http://localhost:3000` with API requests
+proxied to the backend on port 8000.
+
+---
+
+## parsedmarc CLI (Standalone)
+
+If you only need the command-line parser without the web interface, you can
+install the `parsedmarc` Python package directly.
+
+### Prerequisites
+
+`parsedmarc` works with Python 3.9 or later.
+
+#### Testing multiple report analyzers
 
 If you would like to test parsedmarc and another report processing
 solution at the same time, you can have up to two `mailto` URIs in each of the rua and ruf
 tags in your DMARC record, separated by commas.
 
-### Using a web proxy
+#### Using a web proxy
 
 If your system is behind a web proxy, you need to configure your system
 to use that proxy. To do this, edit `/etc/environment` and add your
@@ -32,7 +158,7 @@ ftp_proxy=http://prox-server:3128
 
 This will set the proxy up for use system-wide, including for `parsedmarc`.
 
-### Using Microsoft Exchange
+#### Using Microsoft Exchange
 
 If your mail server is Microsoft Exchange, ensure that it is patched to at
 least:
@@ -41,7 +167,7 @@ least:
 - Exchange Server 2013 Cumulative Update 21 ([KB4099855])
 - Exchange Server 2016 Cumulative Update 11 ([KB4134118])
 
-### geoipupdate setup
+#### geoipupdate setup
 
 :::{note}
 Starting in `parsedmarc` 7.1.0, a static copy of the
@@ -85,7 +211,7 @@ The latest builds for Linux, macOS, and Windows can be downloaded
 from the [geoipupdate releases page on GitHub].
 
 On December 30th, 2019, MaxMind started requiring free accounts to
-access the free Geolite2 databases, in order 
+access the free Geolite2 databases, in order
 [to comply with various privacy regulations].
 
 Start by [registering for a free GeoLite2 account], and signing in.
@@ -131,7 +257,7 @@ job or scheduled task.
 More information about `geoipupdate` can be found at the
 [MaxMind geoipupdate page].
 
-## Installing parsedmarc
+### Installing parsedmarc (CLI only)
 
 On Debian or Ubuntu systems, run:
 
@@ -180,7 +306,7 @@ To install or upgrade `parsedmarc` inside the virtualenv, run:
 sudo -u parsedmarc /opt/parsedmarc/venv/bin/pip install -U parsedmarc
 ```
 
-## Optional dependencies
+### Optional dependencies
 
 If you would like to be able to parse emails saved from Microsoft
 Outlook (i.e. OLE .msg files), install `msgconvert`:

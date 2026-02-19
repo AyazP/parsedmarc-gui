@@ -1,5 +1,12 @@
 # Using parsedmarc
 
+:::{note}
+This page documents the **parsedmarc command-line interface (CLI)**. If you
+are using the **Web GUI**, see {doc}`web-gui` for browser-based usage
+instructions including the dashboard, mailbox configuration, file upload,
+and report viewing.
+:::
+
 ## CLI help
 
 ```text

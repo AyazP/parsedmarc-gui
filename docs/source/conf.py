@@ -15,13 +15,16 @@ import sys
 
 sys.path.insert(0, os.path.abspath(os.path.join("..", "..")))
 
-from parsedmarc import __version__
+try:
+    from parsedmarc import __version__
+except ImportError:
+    __version__ = "1.0.0"
 
 # -- Project information -----------------------------------------------------
 
-project = "parsedmarc"
-copyright = "2018 - 2025, Sean Whalen and contributors"
-author = "Sean Whalen and contributors"
+project = "ParseDMARC Web GUI"
+copyright = "2025, Ayaz Patel. parsedmarc library by Sean Whalen and contributors"
+author = "Ayaz Patel"
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the

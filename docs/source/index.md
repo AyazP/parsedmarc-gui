@@ -1,37 +1,33 @@
-# parsedmarc documentation - Open source DMARC report analyzer and visualizer
+# ParseDMARC Web GUI — Open Source DMARC Report Analyzer and Visualizer
 
-[![Build
-Status](https://github.com/domainaware/parsedmarc/actions/workflows/python-tests.yml/badge.svg)](https://github.com/domainaware/parsedmarc/actions/workflows/python-tests.yml)
-[![Code
-Coverage](https://codecov.io/gh/domainaware/parsedmarc/branch/master/graph/badge.svg)](https://codecov.io/gh/domainaware/parsedmarc)
-[![PyPI
-Package](https://img.shields.io/pypi/v/parsedmarc.svg)](https://pypi.org/project/parsedmarc/)
-[![PyPI - Downloads](https://img.shields.io/pypi/dm/parsedmarc?color=blue)](https://pypistats.org/packages/parsedmarc)
+A full-stack web application that provides a graphical interface for
+[parsedmarc](https://github.com/domainaware/parsedmarc), the open-source
+DMARC report parser and analyzer. Upload, parse, and visualize DMARC
+aggregate, forensic, and SMTP TLS reports — all from your browser.
 
 :::{note}
-**Help Wanted**
-
-This is a project is maintained by one developer.
-Please consider reviewing the open [issues] to see how you can contribute code, documentation, or user support.
-Assistance on the pinned issues would be particularly helpful.
-
-Thanks to all [contributors]!
+This project wraps the [parsedmarc](https://github.com/domainaware/parsedmarc)
+Python library (by Sean Whalen and contributors) with a modern web interface.
+The CLI documentation in this guide covers the upstream parsedmarc tool, while
+the Web GUI sections document the new graphical interface.
 :::
 
-```{image} _static/screenshots/dmarc-summary-charts.png
-:align: center
-:alt: A screenshot of DMARC summary charts in Kibana
-:scale: 50 %
-:target: _static/screenshots/dmarc-summary-charts.png
-```
+## Web GUI Features
 
-`parsedmarc` is a Python module and CLI utility for parsing DMARC reports.
-When used with Elasticsearch and Kibana (or Splunk), or with OpenSearch and Grafana, it works as a self-hosted
-open source alternative to commercial DMARC report processing services such
-as Agari Brand Protection, Dmarcian, OnDMARC, ProofPoint Email Fraud Defense,
-and Valimail.
+- **Setup Wizard** — Guided 6-step first-run configuration
+- **JWT Authentication** — Secure login with HttpOnly cookies and CSRF protection
+- **Dashboard** — Aggregated statistics, report counts, job status, activity feed
+- **Mailbox Configuration** — IMAP, Microsoft Graph, Gmail API, or Maildir sources
+- **Output Destinations** — Elasticsearch, OpenSearch, Splunk, Kafka, S3, Syslog, GELF, Webhooks
+- **File Upload** — Drag-and-drop `.xml`, `.gz`, `.zip`, `.eml`, `.msg` report files
+- **Report Viewer** — Browse and inspect parsed reports with full JSON detail
+- **Background Monitoring** — Scheduled mailbox watching with per-source controls
+- **SSL/TLS** — Self-signed, Let's Encrypt, or custom certificate upload
+- **Database Management** — SQLite (default), PostgreSQL, or MySQL with migration tools
+- **Dark Mode** — Full dark theme with system preference detection
+- **Update Checker** — Automatic GitHub release checking
 
-## Features
+## parsedmarc CLI Features
 
 - Parses draft and 1.0 standard aggregate/rua DMARC reports
 - Parses forensic/failure/ruf DMARC reports
@@ -41,33 +37,49 @@ and Valimail.
 - Consistent data structures
 - Simple JSON and/or CSV output
 - Optionally email the results
-- Optionally send the results to Elasticsearch, Opensearch, and/or Splunk, for use
-    with premade dashboards
+- Optionally send the results to Elasticsearch, OpenSearch, and/or Splunk
 - Optionally send reports to Apache Kafka
+
+## Architecture
+
+```
+┌─────────────────────────────────────────┐
+│              Browser (SPA)              │
+│    Vue 3 + TypeScript + Tailwind CSS    │
+│    Pinia state · Vue Router · Vite      │
+└──────────────────┬──────────────────────┘
+                   │ HTTP /api/*
+┌──────────────────▼──────────────────────┐
+│            FastAPI Backend               │
+│  REST API · SQLAlchemy · APScheduler     │
+│  JWT Auth · CSRF · Fernet Encryption     │
+│  Serves built frontend as SPA           │
+└──────────────────┬──────────────────────┘
+                   │
+┌──────────────────▼──────────────────────┐
+│   SQLite / PostgreSQL / MySQL            │
+│   (encrypted credentials at rest)        │
+└─────────────────────────────────────────┘
+```
 
 ## Python Compatibility
 
-This project supports the following Python versions, which are either actively maintained or are the default versions
-for RHEL or Debian.
-
 | Version | Supported | Reason                                                     |
 |---------|-----------|------------------------------------------------------------|
-| < 3.6   | ❌         | End of Life (EOL)                                          |
-| 3.6     | ❌         | Used in RHEL 8, but not supported by project dependencies |
-| 3.7     | ❌         | End of Life (EOL)                                          |
-| 3.8     | ❌         | End of Life (EOL)                                          |
-| 3.9     | ✅         | Supported until August 2026 (Debian 11); May 2032 (RHEL 9) |
-| 3.10    | ✅         | Actively maintained                                        |
-| 3.11    | ✅         | Actively maintained; supported until June 2028 (Debian 12) |
-| 3.12    | ✅         | Actively maintained; supported until May 2035 (RHEL 10)    |
-| 3.13    | ✅         | Actively maintained; supported until June 2030 (Debian 13) |
-| 3.14    | ✅         | Actively maintained                                        |
+| < 3.9   | No        | End of Life (EOL)                                          |
+| 3.9     | Yes       | Supported until August 2026 (Debian 11); May 2032 (RHEL 9) |
+| 3.10    | Yes       | Actively maintained                                        |
+| 3.11    | Yes       | Actively maintained; supported until June 2028 (Debian 12) |
+| 3.12    | Yes       | Actively maintained; supported until May 2035 (RHEL 10)    |
+| 3.13    | Yes       | Actively maintained; supported until June 2030 (Debian 13) |
+| 3.14    | Yes       | Actively maintained                                        |
 
 ```{toctree}
 :caption: 'Contents'
 :maxdepth: 2
 
 installation
+web-gui
 usage
 output
 elasticsearch
@@ -79,6 +91,3 @@ dmarc
 contributing
 api
 ```
-
-[contributors]: https://github.com/domainaware/parsedmarc/graphs/contributors
-[issues]: https://github.com/domainaware/parsedmarc/issues
