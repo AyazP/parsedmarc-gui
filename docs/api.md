@@ -144,52 +144,24 @@ curl -b cookies.txt -X POST http://localhost:8000/api/auth/logout \
 
 ## parsedmarc Python Library
 
-The following sections document the upstream parsedmarc Python library API,
-auto-generated from source docstrings.
+The following modules are part of the upstream
+[parsedmarc](https://github.com/domainaware/parsedmarc) Python library.
+Full auto-generated API documentation is available when building these
+docs with Sphinx.
 
-### parsedmarc
+### Modules
 
-```{eval-rst}
-.. automodule:: parsedmarc
-   :members:
+| Module | Description |
+|--------|-------------|
+| `parsedmarc` | Main module — report parsing functions |
+| `parsedmarc.elastic` | Elasticsearch output integration |
+| `parsedmarc.opensearch` | OpenSearch output integration |
+| `parsedmarc.splunk` | Splunk HEC output integration |
+| `parsedmarc.types` | Type definitions for parsed reports |
+| `parsedmarc.utils` | Utility functions (DNS, GeoIP, base domain, etc.) |
+
+For detailed API documentation of each module, install parsedmarc and use:
+
+```bash
+python -c "import parsedmarc; help(parsedmarc)"
 ```
-
-### parsedmarc.elastic
-
-```{eval-rst}
-.. automodule:: parsedmarc.elastic
-   :members:
-```
-
-### parsedmarc.opensearch
-
-```{eval-rst}
-.. automodule:: parsedmarc.opensearch
-   :members:
-```
-
-### parsedmarc.splunk
-
-```{eval-rst}
-.. automodule:: parsedmarc.splunk
-   :members:
-```
-
-### parsedmarc.types
-
-```{eval-rst}
-.. automodule:: parsedmarc.types
-   :members:
-```
-
-### parsedmarc.utils
-
-```{eval-rst}
-.. automodule:: parsedmarc.utils
-   :members:
-```
-
-## Indices and tables
-
-- {ref}`genindex`
-- {ref}`modindex`

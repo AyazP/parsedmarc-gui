@@ -6,7 +6,7 @@ forwarding parsed data to various output destinations.
 
 ## Getting Started
 
-After installation (see {doc}`installation`), open the application in your
+After installation (see [Installation](installation.md)), open the application in your
 browser. On first run, you will be guided through the **Setup Wizard**.
 
 ## Setup Wizard
@@ -21,10 +21,8 @@ mailbox passwords and API keys at rest in the database. You can:
 - **Auto-generate** a new key (recommended)
 - **Enter** an existing key if restoring from a backup
 
-:::{warning}
-Store this key securely. If lost, encrypted credentials in the database
-cannot be recovered.
-:::
+> **Warning:** Store this key securely. If lost, encrypted credentials in the database
+> cannot be recovered.
 
 ### Step 2: Admin Credentials
 
@@ -49,11 +47,9 @@ Choose how to secure the application with HTTPS:
 
 After setup, if SSL is enabled the server will restart and redirect to HTTPS.
 
-:::{note}
-When using self-signed certificates, your browser will show a security
-warning on first visit. You must accept the certificate before the
-application will load.
-:::
+> **Note:** When using self-signed certificates, your browser will show a security
+> warning on first visit. You must accept the certificate before the
+> application will load.
 
 ### Step 4: Server Configuration
 

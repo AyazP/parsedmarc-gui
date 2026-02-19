@@ -47,7 +47,7 @@ passed via a `.env` file:
 All other settings (encryption key, admin credentials, SSL, database) are
 configured through the setup wizard on first run.
 
-See {doc}`web-gui` for the full configuration reference.
+See the [Web GUI Guide](web-gui.md) for the full configuration reference.
 
 ### Manual Installation
 
@@ -70,16 +70,14 @@ cd backend
 pip install -r requirements.txt
 ```
 
-:::{note}
-On Debian/Ubuntu, you may need to install build dependencies first:
-```bash
-sudo apt-get install -y python3-pip python3-dev libxml2-dev libxslt-dev
-```
-On CentOS/RHEL:
-```bash
-sudo dnf install -y python3-pip python3-devel libxml2-devel libxslt-devel
-```
-:::
+> **Note:** On Debian/Ubuntu, you may need to install build dependencies first:
+> ```bash
+> sudo apt-get install -y python3-pip python3-dev libxml2-dev libxslt-dev
+> ```
+> On CentOS/RHEL:
+> ```bash
+> sudo dnf install -y python3-pip python3-devel libxml2-devel libxslt-devel
+> ```
 
 #### 3. Build the frontend
 
@@ -169,19 +167,17 @@ least:
 
 #### geoipupdate setup
 
-:::{note}
-Starting in `parsedmarc` 7.1.0, a static copy of the
-[IP to Country Lite database] from IPDB is distributed with
-`parsedmarc`, under the terms of the
-[Creative Commons Attribution 4.0 International License].
-as a fallback if the [MaxMind GeoLite2 Country database] is not
-installed. However, `parsedmarc` cannot install updated versions of
-these databases as they are released, so MaxMind's databases and the
-[geoipupdate] tool is still the preferable solution.
-
-The location of the database file can be overridden by using the
-`ip_db_path` setting.
-:::
+> **Note:** Starting in `parsedmarc` 7.1.0, a static copy of the
+> [IP to Country Lite database] from IPDB is distributed with
+> `parsedmarc`, under the terms of the
+> [Creative Commons Attribution 4.0 International License],
+> as a fallback if the [MaxMind GeoLite2 Country database] is not
+> installed. However, `parsedmarc` cannot install updated versions of
+> these databases as they are released, so MaxMind's databases and the
+> [geoipupdate] tool is still the preferable solution.
+>
+> The location of the database file can be overridden by using the
+> `ip_db_path` setting.
 
 On Debian 10 (Buster) or later, run:
 
@@ -189,9 +185,7 @@ On Debian 10 (Buster) or later, run:
 sudo apt-get install -y geoipupdate
 ```
 
-:::{note}
-[Component "contrib"] is required in your apt sources.
-:::
+> **Note:** [Component "contrib"] is required in your apt sources.
 
 On Ubuntu systems run:
 
@@ -220,19 +214,13 @@ Then, navigate to the [License Keys] page under your account,
 and create a new license key for the version of
 `geoipupdate` that was installed.
 
-:::{warning}
-The configuration file format is different for older (i.e. \<=3.1.1) and newer (i.e. >=3.1.1) versions
-of `geoipupdate`. Be sure to select the correct version for your system.
-:::
+> **Warning:** The configuration file format is different for older (i.e. <=3.1.1) and newer (i.e. >=3.1.1) versions
+> of `geoipupdate`. Be sure to select the correct version for your system.
 
-:::{note}
-To check the version of `geoipupdate` that is installed, run:
-
-```bash
-geoipupdate -V
-```
-
-:::
+> **Note:** To check the version of `geoipupdate` that is installed, run:
+> ```bash
+> geoipupdate -V
+> ```
 
 You can use `parsedmarc` as the description for the key.
 
