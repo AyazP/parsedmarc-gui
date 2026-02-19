@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
+import { useRouter } from 'vue-router'
 import { settingsApi } from '@/api/settings'
 import { useToast } from '@/composables/useToast'
+import { useSetupStore } from '@/stores/setup'
 import type { DatabaseInfo, DatabaseTestRequest, DatabaseMigrateResponse, DatabasePurgeResponse } from '@/types/settings'
 import AppCard from '@/components/ui/AppCard.vue'
 import AppButton from '@/components/ui/AppButton.vue'
@@ -13,6 +15,8 @@ import AppToggle from '@/components/ui/AppToggle.vue'
 import AppModal from '@/components/ui/AppModal.vue'
 
 const toast = useToast()
+const router = useRouter()
+const setupStore = useSetupStore()
 
 const loading = ref(true)
 const dbInfo = ref<DatabaseInfo | null>(null)
@@ -159,8 +163,12 @@ async function handlePurge() {
     const result = await settingsApi.purgeDatabase()
     purgeResult.value = result
     if (result.success) {
-      toast.success('Database purged successfully.')
-      dbInfo.value = await settingsApi.getDatabaseInfo()
+      toast.success('Database purged. Redirecting to setup wizard...')
+      showPurgeConfirm.value = false
+      // Refresh setup status — purge deletes setup_status so needsSetup becomes true
+      await setupStore.fetchStatus()
+      router.push({ name: 'setup' })
+      return
     } else {
       toast.error(result.message)
     }

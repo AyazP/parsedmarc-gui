@@ -20,8 +20,8 @@ apscheduler==3.10.4
 aiofiles==24.1.0
 httpx==0.28.1
 
-# parsedmarc and dependencies (already installed in this project)
-# parsedmarc will be available from the parent directory
+# DMARC report parsing
+parsedmarc>=9.0.0
 
 # Validation
 pydantic==2.9.2
