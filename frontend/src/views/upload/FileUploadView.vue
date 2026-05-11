@@ -25,6 +25,11 @@ function handleFileSelected(file: File) {
   uploadError.value = null
 }
 
+function handleFileError(message: string) {
+  uploadError.value = message
+  selectedFile.value = null
+}
+
 async function handleUpload() {
   if (!selectedFile.value) return
   uploading.value = true
@@ -75,6 +80,7 @@ const statusVariant: Record<string, 'success' | 'error' | 'info' | 'neutral'> = 
           accept=".xml,.gz,.zip,.eml,.msg"
           :disabled="uploading"
           @file-selected="handleFileSelected"
+          @error="handleFileError"
         />
 
         <div v-if="selectedFile" class="flex items-center justify-between rounded-lg bg-gray-50 dark:bg-gray-900 px-4 py-3">
@@ -88,7 +94,7 @@ const statusVariant: Record<string, 'success' | 'error' | 'info' | 'neutral'> = 
           </div>
         </div>
 
-        <AppAlert v-if="uploadError" variant="error" :message="uploadError" dismissible @dismiss="uploadError = null" />
+        <AppAlert v-if="uploadError" type="error" :message="uploadError" dismissible @dismiss="uploadError = null" />
       </div>
     </AppCard>
 

@@ -1,6 +1,7 @@
 """Output configuration API endpoints."""
 from typing import List
 from fastapi import APIRouter, Depends, HTTPException, Query, status
+from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 

@@ -92,7 +92,7 @@ function policyLabel(p: string | undefined): string {
 }
 
 function policyVariant(p: string | undefined): 'success' | 'warning' | 'error' | 'neutral' {
-  if (p === 'none') return 'info' as 'neutral'
+  if (p === 'none') return 'neutral'
   if (p === 'quarantine') return 'warning'
   if (p === 'reject') return 'error'
   return 'neutral'

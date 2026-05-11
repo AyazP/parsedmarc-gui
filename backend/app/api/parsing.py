@@ -1,7 +1,6 @@
 """Parsing API endpoints and schemas."""
 import logging
 import re
-import shutil
 import uuid
 from pathlib import Path
 from typing import Optional, List, Any

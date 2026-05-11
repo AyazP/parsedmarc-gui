@@ -187,7 +187,7 @@ async function handleSubmit() {
     </div>
 
     <form v-else class="space-y-6" @submit.prevent="handleSubmit">
-      <AppAlert v-if="formError" variant="error" :message="formError" dismissible @dismiss="formError = null" />
+      <AppAlert v-if="formError" type="error" :message="formError" dismissible @dismiss="formError = null" />
 
       <AppCard>
         <template #header>

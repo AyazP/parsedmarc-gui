@@ -307,7 +307,7 @@ function formatDate(dateStr?: string): string {
         <div v-if="certInfo">
           <AppAlert
             v-if="certInfo.error"
-            variant="warning"
+            type="warning"
             :message="certInfo.error"
           />
           <div v-else class="space-y-4">
@@ -359,7 +359,7 @@ function formatDate(dateStr?: string): string {
             <div v-if="showUploadForm" class="border-t border-gray-200 dark:border-gray-700 pt-4 space-y-4">
               <h3 class="text-sm font-semibold text-gray-900 dark:text-gray-100">Upload Custom Certificate</h3>
               <AppAlert
-                variant="info"
+                type="info"
                 message="Upload your PEM-encoded certificate and private key files. The certificate will be validated before applying."
               />
               <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -398,17 +398,17 @@ function formatDate(dateStr?: string): string {
               <!-- Validation result -->
               <AppAlert
                 v-if="uploadValidation && uploadValidation.valid"
-                variant="success"
+                type="success"
                 :message="`Valid — Subject: ${uploadValidation.subject}, Issuer: ${uploadValidation.issuer}, Expires: ${formatDate(uploadValidation.expires)} (${uploadValidation.days_until_expiry} days)`"
               />
               <AppAlert
                 v-if="uploadValidation && !uploadValidation.valid"
-                variant="error"
+                type="error"
                 :message="uploadValidation.error || 'Validation failed.'"
               />
               <AppAlert
                 v-if="uploadValidation?.warning"
-                variant="warning"
+                type="warning"
                 :message="uploadValidation.warning"
               />
 
@@ -457,12 +457,12 @@ function formatDate(dateStr?: string): string {
 
               <AppAlert
                 v-if="upgradeChallengeType === 'http-01'"
-                variant="info"
+                type="info"
                 message="Your domain must point to this server and port 80 must be accessible. Certbot must be installed on the server."
               />
               <AppAlert
                 v-else
-                variant="info"
+                type="info"
                 message="DNS-01 validation does not require port 80. Your DNS provider API credentials are needed to create the verification record."
               />
 

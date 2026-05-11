@@ -188,9 +188,15 @@ async def health_check():
 @app.get("/api/system/info")
 async def system_info():
     """Get system information."""
+    if settings.database_type == "sqlite":
+        database = settings.db_path
+    else:
+        database = f"{settings.database_type}://[configured]"
     return {
         "version": APP_VERSION,
         "database_type": settings.database_type,
+        "database": database,
+        "data_directory": str(settings.data_dir),
     }
 
 # Serve static files (frontend) if available

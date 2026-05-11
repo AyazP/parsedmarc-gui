@@ -1,7 +1,7 @@
 """Dashboard API endpoints for aggregated statistics."""
 import logging
 from datetime import datetime
-from typing import Optional, List
+from typing import List
 
 from fastapi import APIRouter, Depends, Query
 from pydantic import BaseModel

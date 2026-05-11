@@ -112,6 +112,7 @@ ENV/
 
 # I/O files
 output/
+!frontend/src/components/output/
 *.xls*
 
 # LibreOffice lock files
@@ -134,6 +135,7 @@ dev*.ini
 samples/private
 
 *.html
+!frontend/index.html
 *.sqlite-journal
 
 parsedmarc.ini
