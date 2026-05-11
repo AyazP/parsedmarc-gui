@@ -110,6 +110,9 @@ ENV/
 # Visual Studio Code settings
 .vscode/
 
+# Node
+node_modules/
+
 # I/O files
 output/
 !frontend/src/components/output/
@@ -148,6 +151,7 @@ parsedmarc/resources/maps/unknown_domains.txt
 *.bak
 nul
 backend/data/parsedmarc.db
+data/parsedmarc.db
 backend/data/certificates/
 backend/data/uploads/
 backend/data/tokens/
